@@ -56,6 +56,22 @@ function check(label, actual, expected) {
   }
 }
 
+/**
+ * Types a pour time with real key events.
+ *
+ * `fill()` is not usable on the m:ss field: it assigns the DOM value directly, and
+ * a controlled input that reformats on every keystroke can re-render and write the
+ * old text back before the synthetic input event is processed — so the digits
+ * appended instead of replacing, intermittently. Keystrokes go through React the
+ * same way a user's do.
+ */
+async function setTime(locator, digits) {
+  await locator.click()
+  await locator.press('ControlOrMeta+a')
+  await locator.press('Backspace')
+  await locator.pressSequentially(digits)
+}
+
 async function waitForServer(url, timeoutMs = 30_000) {
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
@@ -123,12 +139,26 @@ try {
   await page.getByTestId('preset-temp-0').fill('95')
 
   const seconds = page.getByTestId('step-seconds')
-  await seconds.nth(0).fill('2')
+  await setTime(seconds.nth(0), '2')
   await page.getByRole('switch', { name: 'Промывка' }).nth(0).click()
+  // The row index is tracked rather than counted: count() does not wait for the
+  // freshly added row, so it can address the previous one.
+  let stepCount = 1
   for (const value of ['2', '45']) {
     await page.getByRole('button', { name: 'Добавить пролив' }).first().click()
-    await seconds.nth((await seconds.count()) - 1).fill(value)
+    await setTime(seconds.nth(stepCount), value)
+    stepCount += 1
   }
+
+  console.log('· time is entered through the m:ss mask')
+  const lastTime = seconds.nth(2)
+  await setTime(lastTime, '200')
+  check('typing 200 reads as two minutes', await lastTime.inputValue(), '2:00')
+  await setTime(lastTime, '175')
+  await page.getByTestId('mode-title').click()
+  check('an overflowing seconds part tidies up on blur', await lastTime.inputValue(), '2:15')
+  await setTime(lastTime, '45')
+  check('a short pour still takes two keystrokes', await lastTime.inputValue(), '0:45')
 
   await page.getByTestId('add-preset').click()
   await page.getByTestId('preset-volume-1').fill('200')
@@ -257,7 +287,7 @@ try {
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
   await page.getByTestId('new-mode').click()
   await page.getByTestId('mode-title').fill('Оффлайн чай')
-  await page.getByTestId('step-seconds').nth(0).fill('30')
+  await setTime(page.getByTestId('step-seconds').nth(0), '30')
   await page.getByTestId('save-mode').click()
   await page.waitForSelector('[data-testid=mode-list]')
   await page.waitForTimeout(1000)

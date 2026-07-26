@@ -61,7 +61,8 @@ src/
                       useBusy (флаг «идёт пролив» для промпта обновления)
 
   lib/                slug.ts (транслитерация), base64.ts, image.ts (WebP 512),
-                      format.ts (mmss, «150 мл · 8 г»), id.ts
+                      format.ts (mmss, «150 мл · 8 г»), duration.ts (маска м:сс),
+                      id.ts
 
   pages/              ModesPage, ModeEditPage, BrewPage, SettingsPage
   components/

@@ -5,9 +5,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { t } from '@/i18n'
-import { mmss } from '@/lib/format'
+import { digitsOf, formatDigits, normalizeDigits } from '@/lib/duration'
 import { cn } from '@/lib/utils'
-import { parseDuration, type StepDraft } from './draft'
+import type { StepDraft } from './draft'
 
 type StepRowProps = {
   step: StepDraft
@@ -26,6 +26,9 @@ type StepRowProps = {
  * the only number here — temperature lives on the preset, because you set it once
  * and the water cools on its own. Keeping the row to a single line of inputs is
  * what makes a ten-infusion tea readable.
+ *
+ * The time field is an m:ss mask (see lib/duration.ts): digits shift in from the
+ * right, so nothing ever has to be converted into total seconds by hand.
  */
 export function StepRow({
   step,
@@ -37,10 +40,6 @@ export function StepRow({
   onMove,
   onRemove,
 }: StepRowProps) {
-  const seconds = parseDuration(step.seconds)
-  // Only worth echoing the parsed value when the input was not already mm:ss.
-  const showParsed = seconds !== null && seconds >= 60 && !step.seconds.includes(':')
-
   return (
     <li className="rounded-lg border border-border bg-background p-2.5">
       <div className="flex items-center gap-2">
@@ -53,23 +52,25 @@ export function StepRow({
           {step.rinse ? '~' : number}
         </span>
 
-        <div className="relative w-24 shrink-0">
-          <Input
-            value={step.seconds}
-            inputMode="numeric"
-            aria-invalid={invalidSeconds}
-            aria-label={t('editor.step.seconds')}
-            data-testid="step-seconds"
-            placeholder="25"
-            className="tabular"
-            onChange={(e) => onChange({ seconds: e.target.value })}
-          />
-          {showParsed && (
-            <span className="pointer-events-none absolute -bottom-4 left-0 text-[10px] text-muted-foreground tabular">
-              {mmss(seconds)}
-            </span>
-          )}
-        </div>
+        <Input
+          value={formatDigits(step.seconds)}
+          inputMode="numeric"
+          aria-invalid={invalidSeconds}
+          aria-label={t('editor.step.seconds')}
+          data-testid="step-seconds"
+          placeholder="0:25"
+          className="w-24 shrink-0 tabular"
+          onChange={(e) => onChange({ seconds: digitsOf(e.target.value) })}
+          // Typing is allowed to overflow the seconds part (1:75); tidy it up once
+          // the field is left rather than fighting the keystroke.
+          onBlur={() => onChange({ seconds: normalizeDigits(step.seconds) })}
+          // Digits shift in from the right, so the caret belongs at the end — a tap
+          // in the middle of "1:15" would otherwise insert in a surprising place.
+          onFocus={(e) => {
+            const input = e.currentTarget
+            requestAnimationFrame(() => input.setSelectionRange(input.value.length, input.value.length))
+          }}
+        />
 
         {/* The badge already says which pour this is, so no text label here. */}
         <span className="flex-1" />

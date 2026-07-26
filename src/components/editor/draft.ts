@@ -1,3 +1,4 @@
+import { digitsToSeconds, secondsToDigits } from '@/lib/duration'
 import { newId } from '@/lib/id'
 import {
   DEFAULT_LEAF_GRAMS,
@@ -14,12 +15,12 @@ import {
  * A controlled <input type="number"> bound to a number cannot be emptied — the
  * moment the field is blank there is no number to store, so either the field
  * snaps back to the old value or you store NaN. Keeping the raw text in the draft
- * and converting once, on save, avoids that whole class of bug and lets us accept
- * "1:15" as well as "75" for a duration.
+ * and converting once, on save, avoids that whole class of bug.
  */
 
 export type StepDraft = {
   key: string
+  /** Digits typed into the m:ss mask, e.g. "115" for 1:15. See lib/duration.ts. */
   seconds: string
   label: string
   rinse: boolean
@@ -48,7 +49,7 @@ const num = (value: number | undefined): string => (value === undefined ? '' : S
 export function stepToDraft(step: BrewStep): StepDraft {
   return {
     key: newId(),
-    seconds: num(step.seconds),
+    seconds: secondsToDigits(step.seconds),
     label: step.label ?? '',
     rinse: step.rinse === true,
   }
@@ -59,7 +60,7 @@ export function newStepDraft(after?: StepDraft): StepDraft {
     key: newId(),
     // Seed from the previous step: the curve usually climbs from something close
     // to the last value rather than from a fixed default.
-    seconds: after?.seconds ?? String(DEFAULT_STEP_SECONDS),
+    seconds: after?.seconds ?? secondsToDigits(DEFAULT_STEP_SECONDS),
     label: '',
     rinse: false,
   }
@@ -111,31 +112,6 @@ export function newModeDraft(): ModeDraft {
 
 /* ── Parsing ──────────────────────────────────────────────────────────────── */
 
-/**
- * Accepts "90", "1:30" and "1,5" (comma decimal, as Russian keyboards produce).
- * Returns null when the text is not a usable duration.
- */
-export function parseDuration(input: string): number | null {
-  const text = input.trim().replace(',', '.')
-  if (text === '') return null
-
-  if (text.includes(':')) {
-    const parts = text.split(':')
-    if (parts.length > 3) return null
-    let total = 0
-    for (const part of parts) {
-      const piece = Number(part)
-      if (!Number.isFinite(piece) || piece < 0) return null
-      total = total * 60 + piece
-    }
-    return total > 0 ? Math.round(total) : null
-  }
-
-  const value = Number(text)
-  if (!Number.isFinite(value) || value <= 0) return null
-  return Math.round(value)
-}
-
 /** Optional positive number; '' means "not set", bad text means invalid. */
 function parseOptional(input: string): number | null | undefined {
   const text = input.trim().replace(',', '.')
@@ -186,7 +162,7 @@ export function draftToMode(draft: ModeDraft): DraftResult {
     if (preset.steps.length === 0) errors.push({ kind: 'noSteps', presetId: preset.id })
 
     const steps: BrewStep[] = preset.steps.map((step) => {
-      const seconds = parseDuration(step.seconds)
+      const seconds = digitsToSeconds(step.seconds)
       if (seconds === null) {
         errors.push({ kind: 'step', presetId: preset.id, stepKey: step.key, field: 'seconds' })
       }

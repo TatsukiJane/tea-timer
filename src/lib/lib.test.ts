@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
 import { base64ToBytes, base64ToUtf8, bytesToBase64, utf8ToBase64 } from './base64'
+import {
+  digitsOf,
+  digitsToSeconds,
+  formatDigits,
+  normalizeDigits,
+  secondsToDigits,
+} from './duration'
 import { mmss, msToClock, formatNumber, presetLabel } from './format'
 import { shortId } from './id'
 import { imageFilePath, modeFilePath, slugify, transliterate, SLUG_FALLBACK } from './slug'
@@ -162,5 +169,62 @@ describe('formatting', () => {
     expect(formatNumber(8)).toBe('8')
     expect(formatNumber(10.5)).toBe('10,5')
     expect(formatNumber(150)).toBe('150')
+  })
+})
+
+/**
+ * The m:ss mask. Worth testing because it converts what the user typed into what
+ * gets stored: a mask that reads "25" as 25 minutes would quietly ruin a curve.
+ *
+ * `type()` models the real path — the input shows the formatted value, a keystroke
+ * lands at the end of it, and onChange runs it back through digitsOf.
+ */
+function type(keys: string): string {
+  let digits = ''
+  for (const key of keys) digits = digitsOf(formatDigits(digits) + key)
+  return formatDigits(digits)
+}
+
+describe('m:ss input mask', () => {
+  it('shifts digits in from the right', () => {
+    expect(type('2')).toBe('0:02')
+    expect(type('25')).toBe('0:25')
+    expect(type('45')).toBe('0:45')
+    expect(type('115')).toBe('1:15')
+    expect(type('200')).toBe('2:00')
+    expect(type('1030')).toBe('10:30')
+  })
+
+  it('reads a pasted "1:15" the same as the typed digits', () => {
+    expect(formatDigits(digitsOf('1:15'))).toBe('1:15')
+    expect(digitsToSeconds(digitsOf('1:15'))).toBe(75)
+  })
+
+  it('drops the rightmost digit on backspace', () => {
+    expect(formatDigits(digitsOf('1:15'.slice(0, -1)))).toBe('0:11')
+    expect(formatDigits(digitsOf('0:02'.slice(0, -1)))).toBe('')
+  })
+
+  it('ignores a keystroke past the limit rather than restating the minutes', () => {
+    expect(type('1234567')).toBe('1234:56')
+  })
+
+  it('round-trips every stored duration through the mask', () => {
+    for (const seconds of [1, 5, 25, 45, 59, 60, 75, 120, 599, 600, 630, 3600, 86_400]) {
+      expect(digitsToSeconds(secondsToDigits(seconds))).toBe(seconds)
+    }
+  })
+
+  it('folds an overflowing seconds part into minutes on blur', () => {
+    expect(formatDigits(normalizeDigits('175'))).toBe('2:15')
+    expect(formatDigits(normalizeDigits('99'))).toBe('1:39')
+    // Already valid input must be left exactly as it is.
+    expect(formatDigits(normalizeDigits('115'))).toBe('1:15')
+  })
+
+  it('treats an empty field and a zero as "no duration"', () => {
+    expect(digitsToSeconds('')).toBe(null)
+    expect(digitsToSeconds('0')).toBe(null)
+    expect(secondsToDigits(0)).toBe('')
   })
 })
