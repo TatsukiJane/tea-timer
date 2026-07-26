@@ -120,6 +120,8 @@ export const ru = {
   'settings.github.owner': 'Владелец (owner)',
   'settings.github.repo': 'Репозиторий',
   'settings.github.branch': 'Ветка',
+  'settings.github.branch.hint':
+    'Ветка репозитория-хранилища, куда пишутся записи. К репозиторию с кодом отношения не имеет.',
   'settings.github.modesDir': 'Папка для записей',
   'settings.github.assetsDir': 'Папка для картинок',
   'settings.github.token': 'Токен доступа (fine-grained PAT)',
@@ -131,6 +133,8 @@ export const ru = {
   'settings.github.check': 'Проверить доступ',
   'settings.github.checking': 'Проверяю…',
   'settings.github.ok': 'Доступ есть: ветка {branch}, запись {write}.',
+  'settings.github.branchMismatch':
+    'Внимание: в репозитории основная ветка — {default}, а указана {configured}. Записи уйдут в {configured}, и в Obsidian на ветке {default} вы их не увидите. Обычно нужно поставить {default}.',
   'settings.github.ok.write': 'разрешена',
   'settings.github.ok.noWrite': 'запрещена',
   'settings.github.ok.privateYes': 'Репозиторий приватный.',

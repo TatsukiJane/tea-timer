@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { getToken } from '@/db/settings'
+import { cn } from '@/lib/utils'
 import { t } from '@/i18n'
 import { GithubClient } from '@/sync/githubClient'
 import { userMessageOf } from '@/sync/errors'
@@ -72,6 +73,18 @@ export function SettingsPage() {
         }),
         repo.private ? t('settings.github.ok.privateYes') : t('settings.github.ok.privateNo'),
       ]
+
+      // Echoing back the branch the user typed proves nothing. A repo whose default
+      // is `master` will happily accept writes to a new `main`, and those records
+      // then do not appear on the branch they actually browse.
+      if (repo.defaultBranch !== saved.branch) {
+        lines.push(
+          t('settings.github.branchMismatch', {
+            default: repo.defaultBranch,
+            configured: saved.branch,
+          }),
+        )
+      }
 
       // A 404 here is not a failure: the folder simply has not been created yet.
       const entries = await client.listDir(saved.modesDir)
@@ -177,6 +190,7 @@ export function SettingsPage() {
               label={t('settings.github.branch')}
               value={draft.branch}
               placeholder="main"
+              hint={t('settings.github.branch.hint')}
               onChange={(branch) => setDraft({ ...draft, branch })}
             />
             <TextRow
@@ -283,16 +297,19 @@ function TextRow({
   label,
   value,
   placeholder,
+  hint,
   onChange,
 }: {
   id: string
   label: string
   value: string
   placeholder: string
+  /** Shown under the field; spans both grid columns when present. */
+  hint?: string
   onChange: (next: string) => void
 }) {
   return (
-    <div className="space-y-1">
+    <div className={cn('space-y-1', hint !== undefined && 'col-span-2')}>
       <Label htmlFor={id} className="text-xs text-muted-foreground">
         {label}
       </Label>
@@ -305,6 +322,7 @@ function TextRow({
         data-testid={id}
         onChange={(e) => onChange(e.target.value)}
       />
+      {hint !== undefined && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
   )
 }
