@@ -59,12 +59,15 @@
 
 ## 4. Хостинг на GitHub Pages
 
-В репозитории с кодом:
+**Уже развёрнуто:** https://tatsukijane.github.io/tea-timer/ — Pages настроен на
+GitHub Actions, ничего включать не нужно. Каждый пуш в `main` пересобирает и
+публикует сайт через `.github/workflows/deploy.yml`; он же прогоняет линт, тесты и
+проверяет, что service worker собран с правильным base path.
+
+Если разворачиваете копию с нуля в другом репозитории:
 
 1. Settings → Pages → **Source: GitHub Actions**. Это единственное ручное действие.
-2. Запушьте в `main` — workflow `.github/workflows/deploy.yml` сам соберёт и
-   опубликует. Он же прогоняет линт, тесты и проверяет, что service worker собран с
-   правильным base path.
+2. Запушьте в `main`.
 3. Приложение будет на `https://<owner>.github.io/tea-timer/`.
 
 Если репозиторий с кодом называется не `tea-timer`, поправьте `BASE` в

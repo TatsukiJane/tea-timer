@@ -23,6 +23,60 @@ UI (pages/, components/)
 GitHub — это бэкап. Ни один пользовательский сценарий не блокируется отсутствием
 синхронизации; см. `docs/sync.md`.
 
+## Где что лежит
+
+```
+src/
+  main.tsx            точка входа: тема до первой отрисовки, разблокировка звука,
+                      слив очереди синхронизации
+  routes.tsx          hash-роутер, пять маршрутов
+  index.css           вся тема между маркерами THEME START / THEME END
+
+  types/brew.ts       BrewMode / VolumePreset / BrewStep, zod-схемы,
+                      infusionNumber() — нумерация с учётом промывки
+
+  db/                 IndexedDB. schema.ts — назначение всех пяти сторов
+    modes.ts          listModes / saveMode / deleteModeCascade (ставит tombstone)
+    images.ts         Blob'ы картинок
+    settings.ts       конфиг GitHub, токен (отдельной строкой), префы, сессия
+    syncMeta.ts       очередь отправки: dirty-флаги и tombstones
+
+  timer/
+    engine.ts         чистый автомат, ядро корректности. + engine.test.ts
+    useStepTimer.ts   привязка к React: будильник, сверка при пробуждении, rAF
+    alarm.ts          звук осциллятором, вибро, wake lock
+
+  md/
+    serialize.ts      BrewMode → markdown (frontmatter + тело)
+    parse.ts          markdown → BrewMode. Читает ТОЛЬКО frontmatter
+    tables.ts         генерация таблиц; заголовки — константы формата
+    md.test.ts        round-trip + golden-снапшот файла
+
+  sync/
+    githubClient.ts   обёртка над Contents API
+    errors.ts         типизированные ошибки; там же объяснение кодов PAT
+    syncService.ts    push/pull, мьютекс, конфликты, drain. + syncService.test.ts
+
+  state/              хуки: useModes, useSettings, useSync, useImage, useTheme,
+                      useBusy (флаг «идёт пролив» для промпта обновления)
+
+  lib/                slug.ts (транслитерация), base64.ts, image.ts (WebP 512),
+                      format.ts (mmss, «150 мл · 8 г»), id.ts
+
+  pages/              ModesPage, ModeEditPage, BrewPage, SettingsPage
+  components/
+    ui/               сгенерировано shadcn CLI — не редактировать без нужды
+    editor/draft.ts   драфт формы: числа хранятся строками, см. комментарий в файле
+    brew/ modes/ sync/ layout/ pwa/
+
+e2e/smoke.mjs         прогон по собранной версии в headless Chromium
+.github/workflows/deploy.yml   сборка + публикация на Pages, с проверкой base path
+```
+
+Точки, где сосредоточена сложность: `timer/engine.ts`, `md/serialize.ts`,
+`sync/syncService.ts`, `db/schema.ts` и `vite.config.ts`. Если правка касается их —
+сначала прочитай соответствующий раздел ниже или отдельный документ.
+
 ## Хранилище
 
 IndexedDB через `idb`, база `tea-timer`, пять стора. Схема и назначение каждого —
