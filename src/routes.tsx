@@ -4,6 +4,7 @@ import { AppShell } from '@/components/layout/AppShell'
 import { BrewPage } from '@/pages/BrewPage'
 import { ModeEditPage } from '@/pages/ModeEditPage'
 import { ModesPage } from '@/pages/ModesPage'
+import { SettingsPage } from '@/pages/SettingsPage'
 
 /**
  * Hash routing, deliberately.
@@ -23,6 +24,7 @@ export const router = createHashRouter([
       { path: 'mode/new', element: <ModeEditPage /> },
       { path: 'mode/:id/edit', element: <ModeEditPage /> },
       { path: 'mode/:id/brew', element: <BrewPage /> },
+      { path: 'settings', element: <SettingsPage /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
