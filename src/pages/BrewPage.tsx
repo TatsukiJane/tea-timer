@@ -20,7 +20,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import { clearSession, getSession, setSession } from '@/db/settings'
 import { t } from '@/i18n'
-import { mmss } from '@/lib/format'
 import { setTimerBusy } from '@/state/useBusy'
 import { usePrefs } from '@/state/useSettings'
 import { useMode } from '@/state/useModes'
@@ -264,13 +263,9 @@ export function BrewPage() {
             timer={timer.timer}
             remainingMs={timer.remainingMs}
             progress={timer.progress}
-            label={
-              timer.timer.kind === 'done'
-                ? t('brew.ready')
-                : detail !== ''
-                  ? detail
-                  : mmss(currentStep?.seconds ?? 0)
-            }
+            // No fallback to the step duration: it is the same number the readout
+            // already shows in 48px type, so it just reads as a duplicate.
+            label={timer.timer.kind === 'done' ? t('brew.ready') : detail}
           />
         </div>
 

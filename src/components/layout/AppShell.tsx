@@ -15,7 +15,10 @@ export function AppShell() {
       <div className="mx-auto w-full max-w-xl px-4 pb-16">
         <Outlet />
       </div>
-      <Toaster position="top-center" />
+      {/* Bottom, not top: a top-centre toast sits directly over the sticky header
+          and the first card, making them unclickable for the toast's lifetime.
+          Bottom is also the easier reach on a phone. */}
+      <Toaster position="bottom-center" />
       {/* Lives in the shell so a conflict can surface from any screen, including a
           push kicked off as the editor closes. */}
       <ConflictHost />

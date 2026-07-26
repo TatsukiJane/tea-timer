@@ -17,7 +17,14 @@ export function TopBar({ title, subtitle, backTo, actions }: TopBarProps) {
   return (
     <header className="sticky top-0 z-20 -mx-4 mb-4 flex items-center gap-2 border-b border-border bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       {backTo !== undefined && (
-        <Button asChild variant="ghost" size="icon-lg" aria-label={t('common.back')}>
+        <Button
+          asChild
+          variant="ghost"
+          size="icon-lg"
+          // size-9 is 36px; 44 is the smallest comfortable touch target.
+          className="size-11 shrink-0"
+          aria-label={t('common.back')}
+        >
           <Link to={backTo}>
             <ChevronLeftIcon className="size-5" />
           </Link>
