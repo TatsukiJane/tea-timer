@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { t } from '@/i18n'
-import { digitsOf, formatDigits, normalizeDigits } from '@/lib/duration'
+import { digitsAfterEdit, formatDigits, normalizeDigits } from '@/lib/duration'
 import { cn } from '@/lib/utils'
 import type { StepDraft } from './draft'
 
@@ -27,8 +27,8 @@ type StepRowProps = {
  * and the water cools on its own. Keeping the row to a single line of inputs is
  * what makes a ten-infusion tea readable.
  *
- * The time field is an m:ss mask (see lib/duration.ts): digits shift in from the
- * right, so nothing ever has to be converted into total seconds by hand.
+ * The time field is an m:ss mask (see lib/duration.ts): minutes first, then the
+ * colon appears by itself — nothing has to be converted into total seconds by hand.
  */
 export function StepRow({
   step,
@@ -60,12 +60,13 @@ export function StepRow({
           data-testid="step-seconds"
           placeholder="0:25"
           className="w-24 shrink-0 tabular"
-          onChange={(e) => onChange({ seconds: digitsOf(e.target.value) })}
-          // Typing is allowed to overflow the seconds part (1:75); tidy it up once
-          // the field is left rather than fighting the keystroke.
+          onChange={(e) => onChange({ seconds: digitsAfterEdit(step.seconds, e.target.value) })}
+          // Typing is allowed to leave a half-written value (0:5) or overflow the
+          // seconds part (1:75); tidy it up once the field is left rather than
+          // fighting the keystroke.
           onBlur={() => onChange({ seconds: normalizeDigits(step.seconds) })}
-          // Digits shift in from the right, so the caret belongs at the end — a tap
-          // in the middle of "1:15" would otherwise insert in a surprising place.
+          // Digits are appended, so the caret belongs at the end — a tap in the
+          // middle of "1:15" would otherwise insert in a surprising place.
           onFocus={(e) => {
             const input = e.currentTarget
             requestAnimationFrame(() => input.setSelectionRange(input.value.length, input.value.length))

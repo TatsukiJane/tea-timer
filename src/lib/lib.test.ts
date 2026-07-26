@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { base64ToBytes, base64ToUtf8, bytesToBase64, utf8ToBase64 } from './base64'
 import {
+  digitsAfterEdit,
   digitsOf,
   digitsToSeconds,
   formatDigits,
@@ -173,26 +174,47 @@ describe('formatting', () => {
 })
 
 /**
- * The m:ss mask. Worth testing because it converts what the user typed into what
- * gets stored: a mask that reads "25" as 25 minutes would quietly ruin a curve.
+ * The m:ss mask. Worth testing because it turns keystrokes into stored data: a mask
+ * that read "0 4 5" as four minutes would quietly ruin a curve, and the app has no
+ * other guard against that.
  *
- * `type()` models the real path — the input shows the formatted value, a keystroke
- * lands at the end of it, and onChange runs it back through digitsOf.
+ * `type()` models the real path — the field shows the formatted value, a keystroke
+ * lands at the end of it, and the change handler reads it back.
  */
 function type(keys: string): string {
-  let digits = ''
-  for (const key of keys) digits = digitsOf(formatDigits(digits) + key)
-  return formatDigits(digits)
+  return formatDigits(digits(keys))
+}
+
+function digits(keys: string): string {
+  let current = ''
+  for (const key of keys) current = digitsAfterEdit(current, formatDigits(current) + key)
+  return current
+}
+
+/** One backspace on whatever is currently shown. */
+function backspace(current: string): string {
+  return digitsAfterEdit(current, formatDigits(current).slice(0, -1))
 }
 
 describe('m:ss input mask', () => {
-  it('shifts digits in from the right', () => {
-    expect(type('2')).toBe('0:02')
-    expect(type('25')).toBe('0:25')
-    expect(type('45')).toBe('0:45')
-    expect(type('115')).toBe('1:15')
+  it('fills left to right, minutes first, and puts the colon in by itself', () => {
+    expect(type('0')).toBe('0:')
+    expect(type('04')).toBe('0:4')
+    expect(type('045')).toBe('0:45')
+    expect(type('2')).toBe('2:')
+    expect(type('20')).toBe('2:0')
     expect(type('200')).toBe('2:00')
+    expect(type('115')).toBe('1:15')
     expect(type('1030')).toBe('10:30')
+  })
+
+  it('reads a half-typed value exactly as it looks', () => {
+    expect(digitsToSeconds(digits('045'))).toBe(45)
+    expect(digitsToSeconds(digits('05'))).toBe(5)
+    expect(digitsToSeconds(digits('050'))).toBe(50)
+    // A lone digit is minutes, which is the point of filling from the left.
+    expect(digitsToSeconds(digits('2'))).toBe(120)
+    expect(digitsToSeconds(digits('1030'))).toBe(630)
   })
 
   it('reads a pasted "1:15" the same as the typed digits', () => {
@@ -200,12 +222,26 @@ describe('m:ss input mask', () => {
     expect(digitsToSeconds(digitsOf('1:15'))).toBe(75)
   })
 
-  it('drops the rightmost digit on backspace', () => {
-    expect(formatDigits(digitsOf('1:15'.slice(0, -1)))).toBe('0:11')
-    expect(formatDigits(digitsOf('0:02'.slice(0, -1)))).toBe('')
+  it('deletes right to left, and the auto-inserted colon is not a dead keystroke', () => {
+    let current = digits('045')
+    expect(formatDigits(current)).toBe('0:45')
+    current = backspace(current)
+    expect(formatDigits(current)).toBe('0:4')
+    current = backspace(current)
+    expect(formatDigits(current)).toBe('0:')
+    // The field shows "0:" — one more backspace has to empty it, not re-add the colon.
+    current = backspace(current)
+    expect(formatDigits(current)).toBe('')
   })
 
-  it('ignores a keystroke past the limit rather than restating the minutes', () => {
+  it('never lets the minutes accumulate leading zeros', () => {
+    expect(type('00045')).toBe('0:45')
+    // Three zeros are a genuine 0:00 — a zero duration, which the editor rejects.
+    expect(type('000')).toBe('0:00')
+    expect(digitsToSeconds(digits('000'))).toBe(null)
+  })
+
+  it('drops a keystroke past the limit instead of pushing digits out of the field', () => {
     expect(type('1234567')).toBe('1234:56')
   })
 
@@ -215,10 +251,12 @@ describe('m:ss input mask', () => {
     }
   })
 
-  it('folds an overflowing seconds part into minutes on blur', () => {
+  it('pads and folds the value on blur', () => {
+    expect(formatDigits(normalizeDigits(digits('05')))).toBe('0:05')
+    expect(formatDigits(normalizeDigits(digits('2')))).toBe('2:00')
+    // Seconds may overflow while typing; blur folds them into minutes.
     expect(formatDigits(normalizeDigits('175'))).toBe('2:15')
-    expect(formatDigits(normalizeDigits('99'))).toBe('1:39')
-    // Already valid input must be left exactly as it is.
+    // Already canonical input must be left exactly as it is.
     expect(formatDigits(normalizeDigits('115'))).toBe('1:15')
   })
 

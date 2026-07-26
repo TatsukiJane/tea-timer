@@ -139,26 +139,28 @@ try {
   await page.getByTestId('preset-temp-0').fill('95')
 
   const seconds = page.getByTestId('step-seconds')
-  await setTime(seconds.nth(0), '2')
+  await setTime(seconds.nth(0), '002')
   await page.getByRole('switch', { name: 'Промывка' }).nth(0).click()
   // The row index is tracked rather than counted: count() does not wait for the
   // freshly added row, so it can address the previous one.
   let stepCount = 1
-  for (const value of ['2', '45']) {
+  for (const value of ['002', '045']) {
     await page.getByRole('button', { name: 'Добавить пролив' }).first().click()
     await setTime(seconds.nth(stepCount), value)
     stepCount += 1
   }
 
-  console.log('· time is entered through the m:ss mask')
+  console.log('· time is entered left to right through the m:ss mask')
   const lastTime = seconds.nth(2)
+  await setTime(lastTime, '2')
+  check('a lone digit is minutes, colon inserted by itself', await lastTime.inputValue(), '2:')
   await setTime(lastTime, '200')
-  check('typing 200 reads as two minutes', await lastTime.inputValue(), '2:00')
+  check('digits stay where they were typed', await lastTime.inputValue(), '2:00')
   await setTime(lastTime, '175')
   await page.getByTestId('mode-title').click()
   check('an overflowing seconds part tidies up on blur', await lastTime.inputValue(), '2:15')
-  await setTime(lastTime, '45')
-  check('a short pour still takes two keystrokes', await lastTime.inputValue(), '0:45')
+  await setTime(lastTime, '045')
+  check('a short pour is entered with its leading zero', await lastTime.inputValue(), '0:45')
 
   await page.getByTestId('add-preset').click()
   await page.getByTestId('preset-volume-1').fill('200')
@@ -287,7 +289,7 @@ try {
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
   await page.getByTestId('new-mode').click()
   await page.getByTestId('mode-title').fill('Оффлайн чай')
-  await setTime(page.getByTestId('step-seconds').nth(0), '30')
+  await setTime(page.getByTestId('step-seconds').nth(0), '030')
   await page.getByTestId('save-mode').click()
   await page.waitForSelector('[data-testid=mode-list]')
   await page.waitForTimeout(1000)
