@@ -7,9 +7,13 @@ import { TopBar } from '@/components/layout/TopBar'
 import { DeleteModeDialog } from '@/components/modes/DeleteModeDialog'
 import { EmptyState } from '@/components/modes/EmptyState'
 import { ModeCard } from '@/components/modes/ModeCard'
+import { SyncButton } from '@/components/sync/SyncButton'
+import { SyncStatusLine } from '@/components/sync/SyncStatusLine'
 import { Button } from '@/components/ui/button'
 import { t } from '@/i18n'
 import { removeMode, useModes } from '@/state/useModes'
+import { notifySyncStateChanged } from '@/state/useSync'
+import { drainPending } from '@/sync/syncService'
 import type { BrewMode } from '@/types/brew'
 
 export function ModesPage() {
@@ -19,7 +23,11 @@ export function ModesPage() {
   const handleConfirmDelete = async (mode: BrewMode) => {
     setPendingDelete(null)
     await removeMode(mode.id)
+    notifySyncStateChanged()
     toast.success(t('modes.deleted', { title: mode.title }))
+    // The tombstone is queued; try to clear the repository file now, but the
+    // deletion has already happened locally either way.
+    void drainPending().catch(() => undefined)
   }
 
   return (
@@ -28,6 +36,7 @@ export function ModesPage() {
         title={t('modes.title')}
         actions={
           <>
+            <SyncButton />
             <Button asChild variant="ghost" size="icon-lg" aria-label={t('nav.settings')}>
               <Link to="/settings">
                 <SettingsIcon className="size-5" />
@@ -54,6 +63,8 @@ export function ModesPage() {
           ))}
         </ul>
       )}
+
+      <SyncStatusLine />
 
       <DeleteModeDialog
         mode={pendingDelete}

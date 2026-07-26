@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router'
 
+import { ConflictHost } from '@/components/sync/ConflictHost'
 import { Toaster } from '@/components/ui/sonner'
 
 export function AppShell() {
@@ -11,6 +12,9 @@ export function AppShell() {
         <Outlet />
       </div>
       <Toaster position="top-center" />
+      {/* Lives in the shell so a conflict can surface from any screen, including a
+          push kicked off as the editor closes. */}
+      <ConflictHost />
     </div>
   )
 }

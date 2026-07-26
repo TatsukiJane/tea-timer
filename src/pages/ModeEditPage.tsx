@@ -24,6 +24,8 @@ import { t } from '@/i18n'
 import { processImageFile } from '@/lib/image'
 import { useBlobUrl, useImageUrl } from '@/state/useImage'
 import { persistMode, useMode } from '@/state/useModes'
+import { notifySyncStateChanged } from '@/state/useSync'
+import { requestPush } from '@/sync/syncService'
 
 export function ModeEditPage() {
   const { id } = useParams<{ id: string }>()
@@ -101,6 +103,16 @@ export function ModeEditPage() {
       }
 
       toast.success(t('editor.saved'))
+      notifySyncStateChanged()
+
+      // Fire-and-forget: IndexedDB has already committed, so a failed push must
+      // never surface as a failed save. The mode simply stays dirty and the Sync
+      // button picks it up later.
+      void requestPush(saved.id).then((outcome) => {
+        if (outcome.kind === 'failed') toast.warning(t('sync.pushFailed'))
+        notifySyncStateChanged()
+      })
+
       void navigate('/', { replace: true })
     } finally {
       setSaving(false)

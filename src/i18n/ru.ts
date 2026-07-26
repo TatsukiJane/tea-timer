@@ -151,8 +151,8 @@ export const ru = {
   'conflict.title': 'В репозитории более новая версия',
   'conflict.body':
     'Файл «{title}» изменился в репозитории после вашей последней отправки — вероятно, с другого устройства.',
-  'conflict.remoteAt': 'В репозитории: {when}',
-  'conflict.localAt': 'На этом устройстве: {when}',
+  'conflict.remoteLabel': 'В репозитории',
+  'conflict.localLabel': 'На этом устройстве',
   'conflict.overwrite': 'Перезаписать своей',
   'conflict.takeRemote': 'Взять из репозитория',
   'conflict.later': 'Решить позже',
