@@ -1,6 +1,7 @@
 import { createHashRouter, Navigate } from 'react-router'
 
 import { AppShell } from '@/components/layout/AppShell'
+import { ModeEditPage } from '@/pages/ModeEditPage'
 import { ModesPage } from '@/pages/ModesPage'
 
 /**
@@ -18,6 +19,8 @@ export const router = createHashRouter([
     element: <AppShell />,
     children: [
       { index: true, element: <ModesPage /> },
+      { path: 'mode/new', element: <ModeEditPage /> },
+      { path: 'mode/:id/edit', element: <ModeEditPage /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
