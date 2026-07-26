@@ -1,0 +1,64 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Lets you redeploy the current main without pushing a commit.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel a deploy in flight: a half-published Pages site is worse than
+# waiting for the previous run to finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Lint and tests gate the deploy: the markdown serializer and the timer
+      # engine are the two places where a silent regression would corrupt data or
+      # ruin a brew, and both are covered.
+      - run: npm run lint
+      - run: npm test
+
+      # `npm run build` runs tsc -b first, so a type error fails here too.
+      - run: npm run build
+
+      # Guards the classic "works locally, white screen on Pages" failure: the
+      # service worker's navigation fallback must carry the /tea-timer/ base path.
+      - name: Check the service worker carries the base path
+        run: |
+          test -f dist/sw.js || { echo "dist/sw.js missing"; exit 1; }
+          grep -q '"/tea-timer/index.html"' dist/sw.js \
+            || { echo "navigateFallback is not under /tea-timer/"; exit 1; }
+          grep -q '"start_url":"/tea-timer/"' dist/manifest.webmanifest \
+            || { echo "manifest start_url is not under /tea-timer/"; exit 1; }
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

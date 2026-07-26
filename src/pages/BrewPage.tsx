@@ -21,6 +21,7 @@ import {
 import { clearSession, getSession, setSession } from '@/db/settings'
 import { t } from '@/i18n'
 import { mmss } from '@/lib/format'
+import { setTimerBusy } from '@/state/useBusy'
 import { usePrefs } from '@/state/useSettings'
 import { useMode } from '@/state/useModes'
 import { fireAlarm, releaseWakeLock, requestWakeLock, resumeAudio } from '@/timer/alarm'
@@ -148,6 +149,14 @@ export function BrewPage() {
    * Held only while a step is actually running. The browser drops the lock when
    * the page hides, so it is re-acquired on the way back. */
   const running = timer.timer.kind === 'running'
+
+  // Tell the shell a step is in progress, so a service-worker update prompt cannot
+  // reload the page out from under a running infusion.
+  useEffect(() => {
+    setTimerBusy(running)
+    return () => setTimerBusy(false)
+  }, [running])
+
   useEffect(() => {
     if (!prefs.wakeLock || !running) {
       void releaseWakeLock()
