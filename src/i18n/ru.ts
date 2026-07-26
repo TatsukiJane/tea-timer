@@ -87,6 +87,7 @@ export const ru = {
   'brew.next': 'Далее',
   'brew.prev': 'Назад',
   'brew.ready': 'Готово — сливайте',
+  'brew.silence': 'Отключить сигнал',
   'brew.finished': 'Все проливы пройдены',
   'brew.finishedAgain': 'Начать заново',
   'brew.restore.title': 'Продолжить заваривание?',
@@ -104,7 +105,8 @@ export const ru = {
   'settings.theme.dark': 'Тёмная',
   'settings.signals': 'Сигнал',
   'settings.sound': 'Звук',
-  'settings.sound.hint': 'Три коротких сигнала по окончании пролива.',
+  'settings.sound.hint':
+    'Сигнал повторяется, пока не отключите его на экране заваривания. Кнопка ниже проиграет его один раз.',
   'settings.vibration': 'Вибрация',
   'settings.vibration.unsupported': 'Не поддерживается на этом устройстве',
   'settings.wakeLock': 'Не гасить экран',

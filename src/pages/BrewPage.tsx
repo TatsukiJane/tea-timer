@@ -23,7 +23,13 @@ import { t } from '@/i18n'
 import { setTimerBusy } from '@/state/useBusy'
 import { usePrefs } from '@/state/useSettings'
 import { useMode } from '@/state/useModes'
-import { fireAlarm, releaseWakeLock, requestWakeLock, resumeAudio } from '@/timer/alarm'
+import {
+  releaseWakeLock,
+  requestWakeLock,
+  resumeAudio,
+  startAlarm,
+  stopAlarm,
+} from '@/timer/alarm'
 import { useStepTimer } from '@/timer/useStepTimer'
 import { infusionCount, infusionNumber, type BrewStep, type VolumePreset } from '@/types/brew'
 
@@ -67,14 +73,31 @@ export function BrewPage() {
   const stepIndexRef = useRef(stepIndex)
   stepIndexRef.current = stepIndex
 
+  /**
+   * The signal repeats until it is switched off, so the page has to own a "is it
+   * still ringing" flag: the alarm itself lives in a module and is not reactive.
+   */
+  const [ringing, setRinging] = useState(false)
+
+  const silence = useCallback(() => {
+    stopAlarm()
+    setRinging(false)
+  }, [])
+
   const handleDone = useCallback(() => {
-    fireAlarm(prefsRef.current)
+    const prefs = prefsRef.current
+    startAlarm(prefs)
+    // Nothing to switch off if both signals are disabled in settings.
+    if (prefs.sound || prefs.vibration) setRinging(true)
     setCompleted((current) => {
       const next = [...current]
       next[stepIndexRef.current] = true
       return next
     })
   }, [])
+
+  // Leaving the screen must never leave a beeping page behind.
+  useEffect(() => stopAlarm, [])
 
   const timer = useStepTimer((currentStep?.seconds ?? 0) * 1000, handleDone)
 
@@ -128,6 +151,7 @@ export function BrewPage() {
 
   const applyRestore = () => {
     if (restorable === null) return
+    silence()
     setSearchParams({ preset: restorable.presetId }, { replace: true })
     setStepIndex(restorable.stepIndex)
     setCompleted(restorable.completed)
@@ -150,11 +174,12 @@ export function BrewPage() {
   const running = timer.timer.kind === 'running'
 
   // Tell the shell a step is in progress, so a service-worker update prompt cannot
-  // reload the page out from under a running infusion.
+  // reload the page out from under a running infusion — or out from under an alarm
+  // that is still ringing, which a reload would silence without you noticing.
   useEffect(() => {
-    setTimerBusy(running)
+    setTimerBusy(running || ringing)
     return () => setTimerBusy(false)
-  }, [running])
+  }, [running, ringing])
 
   useEffect(() => {
     if (!prefs.wakeLock || !running) {
@@ -179,7 +204,9 @@ export function BrewPage() {
       const target = event.target as HTMLElement | null
       if (target !== null && /^(INPUT|TEXTAREA|BUTTON|SELECT)$/.test(target.tagName)) return
       event.preventDefault()
-      if (timer.timer.kind === 'running') timer.pause()
+      // While the signal repeats, space is the fastest way to shut it up.
+      if (ringing) silence()
+      else if (timer.timer.kind === 'running') timer.pause()
       else if (timer.timer.kind !== 'done') void handleStart()
     }
     window.addEventListener('keydown', onKey)
@@ -187,6 +214,7 @@ export function BrewPage() {
   })
 
   const handleStart = async () => {
+    silence()
     // Belt and braces on top of the app-wide unlock in main.tsx.
     await resumeAudio()
     timer.start()
@@ -194,6 +222,7 @@ export function BrewPage() {
 
   const goToStep = (index: number) => {
     if (index < 0 || index >= steps.length) return
+    silence()
     setStepIndex(index)
   }
 
@@ -269,11 +298,16 @@ export function BrewPage() {
           timer={timer.timer}
           hasPrev={stepIndex > 0}
           hasNext={stepIndex < steps.length - 1}
+          ringing={ringing}
           onStart={() => void handleStart()}
           onPause={timer.pause}
-          onReset={timer.reset}
+          onReset={() => {
+            silence()
+            timer.reset()
+          }}
           onPrev={() => goToStep(stepIndex - 1)}
           onNext={() => goToStep(stepIndex + 1)}
+          onSilence={silence}
         />
 
         <IosHint />
@@ -289,6 +323,7 @@ export function BrewPage() {
           <PresetPicker
             presets={mode.presets.filter((p) => p.id !== preset.id)}
             onPick={(picked) => {
+              silence()
               setSearchParams({ preset: picked.id }, { replace: true })
               setStepIndex(0)
               setCompleted([])

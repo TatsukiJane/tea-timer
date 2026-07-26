@@ -85,6 +85,26 @@ try {
     viewport: { width: 390, height: 900 },
     colorScheme: 'dark',
   })
+  // Records every scheduled oscillator start so the repeating alarm can be checked
+  // without listening to it: headless Chromium has no speakers, but the schedule on
+  // the audio clock is exactly what makes the signal survive a throttled tab.
+  await context.addInitScript(() => {
+    window.__oscStarts = []
+    const proto = window.AudioContext?.prototype
+    if (!proto) return
+    const create = proto.createOscillator
+    proto.createOscillator = function patched() {
+      window.__audioCtx = this
+      const osc = create.call(this)
+      const start = osc.start.bind(osc)
+      osc.start = (when) => {
+        window.__oscStarts.push(when ?? this.currentTime)
+        start(when)
+      }
+      return osc
+    }
+  })
+
   const page = await context.newPage()
 
   const consoleErrors = []
@@ -152,6 +172,32 @@ try {
   await page.getByTestId('start-step').click()
   await page.waitForSelector('[data-testid=next-step]', { timeout: 10_000 })
   check('readout reaches zero', await page.getByTestId('timer-readout').innerText(), '0:00')
+
+  console.log('\n· the signal repeats until it is switched off')
+  await page.waitForSelector('[data-testid=silence-alarm]', { timeout: 5000 })
+  const scheduled = await page.evaluate(() => ({
+    count: window.__oscStarts.length,
+    last: Math.max(...window.__oscStarts),
+    // The app's own context, so "far ahead" is measured against the clock the
+    // pips are actually scheduled on.
+    now: window.__audioCtx.currentTime,
+  }))
+  check('more than one burst of pips is scheduled', scheduled.count > 3, true)
+  check(
+    'pips are scheduled far past the deadline, so throttling cannot cut them off',
+    scheduled.last > scheduled.now + 30,
+    true,
+  )
+
+  await page.getByTestId('silence-alarm').click()
+  check('the silence button disappears once pressed', await page.getByTestId('silence-alarm').count(), 0)
+  const afterSilence = await page.evaluate(() => window.__oscStarts.length)
+  await sleep(2500)
+  check(
+    'nothing new is scheduled after silencing',
+    await page.evaluate(() => window.__oscStarts.length),
+    afterSilence,
+  )
 
   console.log('· advancing must not auto-start the next step')
   await page.getByTestId('next-step').click()

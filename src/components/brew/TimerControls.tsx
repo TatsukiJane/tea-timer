@@ -1,4 +1,11 @@
-import { ChevronLeftIcon, ChevronRightIcon, PauseIcon, PlayIcon, RotateCcwIcon } from 'lucide-react'
+import {
+  BellOffIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  PauseIcon,
+  PlayIcon,
+  RotateCcwIcon,
+} from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { t } from '@/i18n'
@@ -8,11 +15,14 @@ type TimerControlsProps = {
   timer: StepTimer
   hasPrev: boolean
   hasNext: boolean
+  /** The end-of-step signal is currently sounding and needs switching off. */
+  ringing: boolean
   onStart: () => void
   onPause: () => void
   onReset: () => void
   onPrev: () => void
   onNext: () => void
+  onSilence: () => void
 }
 
 /**
@@ -20,22 +30,43 @@ type TimerControlsProps = {
  * decanting the tea, so the moment the next step starts has to be theirs. When a
  * step finishes, "Далее" becomes the primary action but only moves to the next
  * step — it does not start it.
+ *
+ * While the signal repeats, a silence bar appears *above* the primary button
+ * rather than replacing it: "Далее" has to stay where the thumb expects it, and
+ * every control silences the alarm anyway — the bar is a shortcut, not a gate.
  */
 export function TimerControls({
   timer,
   hasPrev,
   hasNext,
+  ringing,
   onStart,
   onPause,
   onReset,
   onPrev,
   onNext,
+  onSilence,
 }: TimerControlsProps) {
   const running = timer.kind === 'running'
   const done = timer.kind === 'done'
 
   return (
     <div className="space-y-3">
+      {ringing && (
+        <Button
+          size="lg"
+          variant="outline"
+          // Outlined in the accent colour: while the phone is buzzing this has to
+          // read as the live control, not as a panel next to the primary button.
+          className="h-12 w-full border-primary/60 text-base"
+          data-testid="silence-alarm"
+          onClick={onSilence}
+        >
+          <BellOffIcon className="size-5" />
+          {t('brew.silence')}
+        </Button>
+      )}
+
       {done ? (
         <Button
           size="lg"
