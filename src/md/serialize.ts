@@ -31,6 +31,7 @@ type Frontmatter = {
     id: string
     vesselVolume: number
     leafGrams: number
+    tempC?: number
     steps: Record<string, unknown>[]
   }[]
 }
@@ -52,11 +53,10 @@ export function toFrontmatterObject(mode: BrewMode): Frontmatter {
       id: preset.id,
       vesselVolume: preset.vesselVolume,
       leafGrams: preset.leafGrams,
+      ...(preset.tempC !== undefined ? { tempC: preset.tempC } : {}),
       // Keys are emitted only when set, so a simple timer stays a simple file.
       steps: preset.steps.map((step) => {
         const entry: Record<string, unknown> = { seconds: step.seconds }
-        if (step.tempC !== undefined) entry.tempC = step.tempC
-        if (step.pourMl !== undefined) entry.pourMl = step.pourMl
         if (step.label !== undefined) entry.label = step.label
         if (step.rinse) entry.rinse = true
         return entry

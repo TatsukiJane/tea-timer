@@ -16,9 +16,18 @@ export function msToClock(ms: number): string {
   return mmss(Math.ceil(Math.max(0, ms) / 1000))
 }
 
-/** "150 мл · 8 г" — the brewing context shown above the timer. */
-export function presetLabel(vesselVolume: number, leafGrams: number): string {
-  return `${formatNumber(vesselVolume)} ${t('common.ml')} · ${formatNumber(leafGrams)} ${t('common.g')}`
+/**
+ * "150 мл · 8 г · 95°" — the brewing context shown above the timer. Everything
+ * constant for this way of brewing, in one line, so the leaf can be measured out
+ * and the kettle set before starting.
+ */
+export function presetLabel(vesselVolume: number, leafGrams: number, tempC?: number): string {
+  const parts = [
+    `${formatNumber(vesselVolume)} ${t('common.ml')}`,
+    `${formatNumber(leafGrams)} ${t('common.g')}`,
+  ]
+  if (tempC !== undefined) parts.push(`${formatNumber(tempC)}°`)
+  return parts.join(' · ')
 }
 
 /** "150 / 200 мл" — the volumes badge on a mode card. */

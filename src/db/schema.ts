@@ -109,4 +109,5 @@ export interface TeaTimerDB extends DBSchema {
 }
 
 export const DB_NAME = 'tea-timer'
-export const DB_VERSION = 1
+/** 2: temperature moved from BrewStep up to VolumePreset. */
+export const DB_VERSION = 2

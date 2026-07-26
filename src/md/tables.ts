@@ -13,8 +13,6 @@ import { infusionNumber, type BrewMode, type BrewStep, type VolumePreset } from 
 const HEADINGS = {
   step: 'Пролив',
   time: 'Время',
-  temp: 'Темп.',
-  volume: 'Объём',
   label: 'Метка',
   notes: 'Заметки',
   rinse: 'промывка',
@@ -49,21 +47,25 @@ export function renderBody(mode: BrewMode): string {
   return blocks.join('\n\n') + '\n'
 }
 
+/** "150 мл · 8 г · 95°" — everything constant about this way of brewing. */
 function presetHeading(preset: VolumePreset): string {
-  return `${formatNumber(preset.vesselVolume)} ${HEADINGS.ml} · ${formatNumber(preset.leafGrams)} ${HEADINGS.g}`
+  const parts = [
+    `${formatNumber(preset.vesselVolume)} ${HEADINGS.ml}`,
+    `${formatNumber(preset.leafGrams)} ${HEADINGS.g}`,
+  ]
+  if (preset.tempC !== undefined) parts.push(`${formatNumber(preset.tempC)}°`)
+  return parts.join(' · ')
 }
 
 function renderTable(steps: readonly BrewStep[]): string {
+  // Only time varies per pour now, so the table is two columns plus the label.
   const rows = steps.map((step, index) => [
     stepCell(steps, index),
     mmss(step.seconds),
-    step.tempC === undefined ? EMPTY_CELL : `${formatNumber(step.tempC)}°`,
-    step.pourMl === undefined ? EMPTY_CELL : `${formatNumber(step.pourMl)}${HEADINGS.ml}`,
     step.label ?? EMPTY_CELL,
   ])
 
-  const header = [HEADINGS.step, HEADINGS.time, HEADINGS.temp, HEADINGS.volume, HEADINGS.label]
-  return renderMarkdownTable(header, rows)
+  return renderMarkdownTable([HEADINGS.step, HEADINGS.time, HEADINGS.label], rows)
 }
 
 function stepCell(steps: readonly BrewStep[], index: number): string {

@@ -41,6 +41,9 @@ export function PresetEditor({
   const invalidGrams = errors.some(
     (e) => e.kind === 'preset' && e.presetId === preset.id && e.field === 'leafGrams',
   )
+  const invalidTemp = errors.some(
+    (e) => e.kind === 'preset' && e.presetId === preset.id && e.field === 'tempC',
+  )
 
   const handleCopy = (source: PresetDraft) => {
     // Fresh keys: the copies are independent rows from React's point of view.
@@ -51,8 +54,11 @@ export function PresetEditor({
 
   return (
     <section className="rounded-xl border border-border bg-card p-3">
+      {/* Everything constant for this way of brewing lives here, together: how much
+          the vessel holds, how much leaf, how hot the water. Temperature used to sit
+          on every step, which wrongly implied it changes from pour to pour. */}
       <div className="mb-3 flex items-end gap-2">
-        <div className="flex-1 space-y-1">
+        <div className="min-w-0 flex-1 space-y-1">
           <Label htmlFor={`volume-${preset.id}`} className="text-xs text-muted-foreground">
             {t('editor.preset.volume')}
           </Label>
@@ -66,7 +72,7 @@ export function PresetEditor({
             onChange={(e) => onChange({ vesselVolume: e.target.value })}
           />
         </div>
-        <div className="w-24 space-y-1">
+        <div className="w-20 shrink-0 space-y-1">
           <Label htmlFor={`grams-${preset.id}`} className="text-xs text-muted-foreground">
             {t('editor.preset.grams')}
           </Label>
@@ -78,6 +84,21 @@ export function PresetEditor({
             data-testid={`preset-grams-${index}`}
             className="tabular"
             onChange={(e) => onChange({ leafGrams: e.target.value })}
+          />
+        </div>
+        <div className="w-20 shrink-0 space-y-1">
+          <Label htmlFor={`temp-${preset.id}`} className="text-xs text-muted-foreground">
+            {t('editor.preset.temp')}
+          </Label>
+          <Input
+            id={`temp-${preset.id}`}
+            value={preset.tempC}
+            inputMode="numeric"
+            aria-invalid={invalidTemp}
+            data-testid={`preset-temp-${index}`}
+            placeholder={t('common.none')}
+            className="tabular"
+            onChange={(e) => onChange({ tempC: e.target.value })}
           />
         </div>
         <Button

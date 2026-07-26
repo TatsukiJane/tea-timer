@@ -231,13 +231,9 @@ export function BrewPage() {
         ? t('brew.rinse')
         : t('brew.step', { n: number ?? 0 })
 
-  const detail = [
-    currentStep?.tempC !== undefined ? t('brew.temp', { temp: currentStep.tempC }) : undefined,
-    currentStep?.pourMl !== undefined ? t('brew.pour', { ml: currentStep.pourMl }) : undefined,
-    currentStep?.label,
-  ]
-    .filter((part): part is string => part !== undefined)
-    .join(' · ')
+  // Under the countdown: only what is specific to this pour. Volume, leaf and
+  // temperature are constant for the whole session and live in the header.
+  const detail = currentStep?.label ?? ''
 
   return (
     <>

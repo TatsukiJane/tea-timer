@@ -99,6 +99,8 @@ try {
   await page.getByTestId('mode-title').fill('Шу Пуэр 2018')
   await page.getByTestId('preset-volume-0').fill('150')
   await page.getByTestId('preset-grams-0').fill('8')
+  // Temperature is a preset-level setting, not a per-step one.
+  await page.getByTestId('preset-temp-0').fill('95')
 
   const seconds = page.getByTestId('step-seconds')
   await seconds.nth(0).fill('2')
@@ -139,7 +141,11 @@ try {
   check('preset picker appears when there is more than one preset', true, true)
   await page.getByTestId('pick-preset-150').click()
 
-  check('brewing context is always visible', await page.getByTestId('brew-context').innerText(), '150 мл · 8 г')
+  check(
+    'brewing context shows volume, leaf and temperature together',
+    await page.getByTestId('brew-context').innerText(),
+    '150 мл · 8 г · 95°',
+  )
   check('first step is the rinse', await page.getByTestId('step-title').innerText(), 'Промывка')
 
   console.log('\n· run a step to completion')

@@ -23,7 +23,7 @@ export function PresetPicker({ presets, onPick }: PresetPickerProps) {
               onClick={() => onPick(preset)}
             >
               <span className="text-base tabular">
-                {presetLabel(preset.vesselVolume, preset.leafGrams)}
+                {presetLabel(preset.vesselVolume, preset.leafGrams, preset.tempC)}
               </span>
               <span className="text-xs text-muted-foreground">
                 {countOf(infusionCount(preset.steps), PLURALS.steps)}

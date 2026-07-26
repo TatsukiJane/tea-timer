@@ -14,11 +14,12 @@ const BASE: BrewMode = {
       id: 'aaaaaaaa-1111-4222-8333-444455556666',
       vesselVolume: 150,
       leafGrams: 8,
+      tempC: 95,
       steps: [
-        { seconds: 25, tempC: 95, pourMl: 150, label: 'промывка', rinse: true },
-        { seconds: 25, tempC: 95, pourMl: 150 },
-        { seconds: 45, tempC: 95, pourMl: 150 },
-        { seconds: 60, tempC: 95, pourMl: 150 },
+        { seconds: 25, label: 'промывка', rinse: true },
+        { seconds: 25 },
+        { seconds: 45 },
+        { seconds: 60 },
       ],
     },
     {
@@ -57,6 +58,12 @@ describe('markdown round trip', () => {
   it('preserves presets whose step counts differ', () => {
     const back = roundTrip(BASE)
     expect(back.presets.map((p) => p.steps.length)).toEqual([4, 3])
+  })
+
+  it('preserves the preset temperature', () => {
+    expect(roundTrip(BASE).presets[0].tempC).toBe(95)
+    // The second preset has none, and must not gain one.
+    expect(roundTrip(BASE).presets[1].tempC).toBeUndefined()
   })
 
   it('preserves the rinse flag', () => {
@@ -157,11 +164,12 @@ describe('emitted file shape', () => {
         - id: aaaaaaaa-1111-4222-8333-444455556666
           vesselVolume: 150
           leafGrams: 8
+          tempC: 95
           steps:
-            - { seconds: 25, tempC: 95, pourMl: 150, label: промывка, rinse: true }
-            - { seconds: 25, tempC: 95, pourMl: 150 }
-            - { seconds: 45, tempC: 95, pourMl: 150 }
-            - { seconds: 60, tempC: 95, pourMl: 150 }
+            - { seconds: 25, label: промывка, rinse: true }
+            - { seconds: 25 }
+            - { seconds: 45 }
+            - { seconds: 60 }
         - id: bbbbbbbb-1111-4222-8333-444455556666
           vesselVolume: 200
           leafGrams: 10
@@ -173,29 +181,30 @@ describe('emitted file shape', () => {
 
       # Шу Пуэр 2018
 
-      ## 150 мл · 8 г
+      ## 150 мл · 8 г · 95°
 
-      | Пролив   | Время | Темп. | Объём | Метка    |
-      |----------|-------|-------|-------|----------|
-      | промывка | 0:25  | 95°   | 150мл | промывка |
-      | 1        | 0:25  | 95°   | 150мл | —        |
-      | 2        | 0:45  | 95°   | 150мл | —        |
-      | 3        | 1:00  | 95°   | 150мл | —        |
+      | Пролив   | Время | Метка    |
+      |----------|-------|----------|
+      | промывка | 0:25  | промывка |
+      | 1        | 0:25  | —        |
+      | 2        | 0:45  | —        |
+      | 3        | 1:00  | —        |
 
       ## 200 мл · 10 г
 
-      | Пролив | Время | Темп. | Объём | Метка |
-      |--------|-------|-------|-------|-------|
-      | 1      | 0:25  | —     | —     | —     |
-      | 2      | 0:45  | —     | —     | —     |
-      | 3      | 1:00  | —     | —     | —     |
+      | Пролив | Время | Метка |
+      |--------|-------|-------|
+      | 1      | 0:25  | —     |
+      | 2      | 0:45  | —     |
+      | 3      | 1:00  | —     |
       "
     `)
   })
 
   it('emits steps in flow style and Cyrillic unquoted', () => {
     const text = serializeMode(BASE)
-    expect(text).toContain('- { seconds: 25, tempC: 95, pourMl: 150, label: промывка, rinse: true }')
+    expect(text).toContain('- { seconds: 25, label: промывка, rinse: true }')
+    expect(text).toContain('tempC: 95')
     expect(text).toContain('title: Шу Пуэр 2018')
   })
 
@@ -305,12 +314,14 @@ describe('repairs on hand-edited files', () => {
   })
 
   it('coerces numeric strings written by hand', () => {
-    const source = minimal.replace('- { seconds: 25 }', "- { seconds: '25', tempC: '95' }")
+    const source = minimal
+      .replace('- { seconds: 25 }', "- { seconds: '25' }")
+      .replace('    leafGrams: 8', "    leafGrams: 8\n    tempC: '95'")
     const result = parseMode(source)
     expect(result.ok).toBe(true)
     if (result.ok) {
       expect(result.mode.presets[0].steps[0].seconds).toBe(25)
-      expect(result.mode.presets[0].steps[0].tempC).toBe(95)
+      expect(result.mode.presets[0].tempC).toBe(95)
     }
   })
 
@@ -327,5 +338,79 @@ describe('repairs on hand-edited files', () => {
     const result = parseMode(tampered)
     expect(result.ok).toBe(true)
     if (result.ok) expect(result.mode.presets[0].steps[1].seconds).toBe(25)
+  })
+})
+
+describe('files written before temperature moved to the preset', () => {
+  /** Exactly what an older version of this app emitted. */
+  const legacy = [
+    '---',
+    'id: 6f1c2a3b-1111-4222-8333-444455556666',
+    'title: Шу Пуэр 2018',
+    'presets:',
+    '  - id: aaaaaaaa-1111-4222-8333-444455556666',
+    '    vesselVolume: 150',
+    '    leafGrams: 8',
+    '    steps:',
+    '      - { seconds: 10, tempC: 100, pourMl: 150, label: промывка, rinse: true }',
+    '      - { seconds: 25, tempC: 95, pourMl: 150 }',
+    '      - { seconds: 45, tempC: 95, pourMl: 150 }',
+    '---',
+    '',
+  ].join('\n')
+
+  it('hoists the infusion temperature, not the rinse temperature', () => {
+    // The rinse is poured at 100 and the infusions at 95. Recording 100 would
+    // misstate how the tea is actually brewed.
+    const result = parseMode(legacy)
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.mode.presets[0].tempC).toBe(95)
+  })
+
+  it('falls back to the rinse temperature when it is the only one given', () => {
+    const rinseOnly = legacy
+      .replace('- { seconds: 25, tempC: 95, pourMl: 150 }', '- { seconds: 25 }')
+      .replace('- { seconds: 45, tempC: 95, pourMl: 150 }', '- { seconds: 45 }')
+    const result = parseMode(rinseOnly)
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.mode.presets[0].tempC).toBe(100)
+  })
+
+  it('drops the per-step temperature and pour volume', () => {
+    const result = parseMode(legacy)
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    for (const step of result.mode.presets[0].steps) {
+      expect('tempC' in step).toBe(false)
+      expect('pourMl' in step).toBe(false)
+    }
+  })
+
+  it('keeps time, label and rinse untouched', () => {
+    const result = parseMode(legacy)
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.mode.presets[0].steps.map((s) => s.seconds)).toEqual([10, 25, 45])
+    expect(result.mode.presets[0].steps[0]).toMatchObject({ label: 'промывка', rinse: true })
+  })
+
+  it('prefers a preset-level temperature over the per-step one', () => {
+    const both = legacy.replace('    leafGrams: 8', '    leafGrams: 8\n    tempC: 90')
+    const result = parseMode(both)
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.mode.presets[0].tempC).toBe(90)
+  })
+
+  it('re-emits the migrated mode in the new shape', () => {
+    // Reading an old file and pushing it back must produce the current format,
+    // not preserve the old one.
+    const result = parseMode(legacy)
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    const text = serializeMode(result.mode)
+    expect(text).toContain('tempC: 95')
+    expect(text).not.toContain('pourMl')
+    expect(text).toContain('- { seconds: 25 }')
   })
 })

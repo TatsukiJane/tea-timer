@@ -21,8 +21,6 @@ import {
 export type StepDraft = {
   key: string
   seconds: string
-  tempC: string
-  pourMl: string
   label: string
   rinse: boolean
 }
@@ -31,6 +29,7 @@ export type PresetDraft = {
   id: string
   vesselVolume: string
   leafGrams: string
+  tempC: string
   steps: StepDraft[]
 }
 
@@ -50,21 +49,17 @@ export function stepToDraft(step: BrewStep): StepDraft {
   return {
     key: newId(),
     seconds: num(step.seconds),
-    tempC: num(step.tempC),
-    pourMl: num(step.pourMl),
     label: step.label ?? '',
     rinse: step.rinse === true,
   }
 }
 
 export function newStepDraft(after?: StepDraft): StepDraft {
-  // Carrying temperature and pour volume forward from the previous step is what
-  // the user almost always wants: those stay constant while the time ramps up.
   return {
     key: newId(),
+    // Seed from the previous step: the curve usually climbs from something close
+    // to the last value rather than from a fixed default.
     seconds: after?.seconds ?? String(DEFAULT_STEP_SECONDS),
-    tempC: after?.tempC ?? '',
-    pourMl: after?.pourMl ?? '',
     label: '',
     rinse: false,
   }
@@ -75,6 +70,7 @@ export function presetToDraft(preset: VolumePreset): PresetDraft {
     id: preset.id,
     vesselVolume: num(preset.vesselVolume),
     leafGrams: num(preset.leafGrams),
+    tempC: num(preset.tempC),
     steps: preset.steps.map(stepToDraft),
   }
 }
@@ -84,6 +80,7 @@ export function newPresetDraft(): PresetDraft {
     id: newId(),
     vesselVolume: String(DEFAULT_VESSEL_VOLUME),
     leafGrams: String(DEFAULT_LEAF_GRAMS),
+    tempC: '',
     steps: [newStepDraft()],
   }
 }
@@ -158,8 +155,8 @@ function parseRequired(input: string): number | null {
 
 export type DraftError =
   | { kind: 'title' }
-  | { kind: 'preset'; presetId: string; field: 'vesselVolume' | 'leafGrams' }
-  | { kind: 'step'; presetId: string; stepKey: string; field: 'seconds' | 'tempC' | 'pourMl' }
+  | { kind: 'preset'; presetId: string; field: 'vesselVolume' | 'leafGrams' | 'tempC' }
+  | { kind: 'step'; presetId: string; stepKey: string; field: 'seconds' }
   | { kind: 'noSteps'; presetId: string }
 
 export type DraftResult =
@@ -182,6 +179,10 @@ export function draftToMode(draft: ModeDraft): DraftResult {
     if (leafGrams === null) {
       errors.push({ kind: 'preset', presetId: preset.id, field: 'leafGrams' })
     }
+    const tempC = parseOptional(preset.tempC)
+    if (tempC === null) {
+      errors.push({ kind: 'preset', presetId: preset.id, field: 'tempC' })
+    }
     if (preset.steps.length === 0) errors.push({ kind: 'noSteps', presetId: preset.id })
 
     const steps: BrewStep[] = preset.steps.map((step) => {
@@ -189,30 +190,22 @@ export function draftToMode(draft: ModeDraft): DraftResult {
       if (seconds === null) {
         errors.push({ kind: 'step', presetId: preset.id, stepKey: step.key, field: 'seconds' })
       }
-      const tempC = parseOptional(step.tempC)
-      if (tempC === null) {
-        errors.push({ kind: 'step', presetId: preset.id, stepKey: step.key, field: 'tempC' })
-      }
-      const pourMl = parseOptional(step.pourMl)
-      if (pourMl === null) {
-        errors.push({ kind: 'step', presetId: preset.id, stepKey: step.key, field: 'pourMl' })
-      }
 
       const out: BrewStep = { seconds: seconds ?? 0 }
-      if (tempC !== null && tempC !== undefined) out.tempC = tempC
-      if (pourMl !== null && pourMl !== undefined) out.pourMl = pourMl
       const label = step.label.trim()
       if (label !== '') out.label = label
       if (step.rinse) out.rinse = true
       return out
     })
 
-    return {
+    const out: VolumePreset = {
       id: preset.id,
       vesselVolume: vesselVolume ?? 0,
       leafGrams: leafGrams ?? 0,
       steps,
     }
+    if (tempC !== null && tempC !== undefined) out.tempC = tempC
+    return out
   })
 
   if (errors.length > 0) return { ok: false, errors }

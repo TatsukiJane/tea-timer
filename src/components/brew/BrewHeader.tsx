@@ -13,7 +13,7 @@ type BrewHeaderProps = {
 export function BrewHeader({ preset }: BrewHeaderProps) {
   return (
     <Badge variant="secondary" className="tabular text-sm" data-testid="brew-context">
-      {presetLabel(preset.vesselVolume, preset.leafGrams)}
+      {presetLabel(preset.vesselVolume, preset.leafGrams, preset.tempC)}
     </Badge>
   )
 }

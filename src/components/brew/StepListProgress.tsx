@@ -59,11 +59,7 @@ export function StepListProgress({
                 )}
               </span>
 
-              <span className="shrink-0 text-xs text-muted-foreground tabular">
-                {step.tempC !== undefined && `${t('brew.temp', { temp: step.tempC })} · `}
-                {step.pourMl !== undefined && `${t('brew.pour', { ml: step.pourMl })} · `}
-                <span className="font-medium text-foreground">{mmss(step.seconds)}</span>
-              </span>
+              <span className="shrink-0 text-xs font-medium tabular">{mmss(step.seconds)}</span>
             </button>
           </li>
         )

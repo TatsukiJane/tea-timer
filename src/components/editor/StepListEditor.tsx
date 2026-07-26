@@ -18,12 +18,6 @@ type StepListEditorProps = {
  * straightforward to drive from a test. The spec allows either.
  */
 export function StepListEditor({ presetId, steps, errors, onChange }: StepListEditorProps) {
-  const invalidFor = (stepKey: string) => ({
-    seconds: hasStepError(errors, presetId, stepKey, 'seconds'),
-    tempC: hasStepError(errors, presetId, stepKey, 'tempC'),
-    pourMl: hasStepError(errors, presetId, stepKey, 'pourMl'),
-  })
-
   const patchStep = (index: number, patch: Partial<StepDraft>) => {
     onChange(steps.map((step, i) => (i === index ? { ...step, ...patch } : step)))
   }
@@ -59,7 +53,7 @@ export function StepListEditor({ presetId, steps, errors, onChange }: StepListEd
               number={infusionNumberOfDraft(steps, index)}
               isFirst={index === 0}
               isLast={index === steps.length - 1}
-              invalid={invalidFor(step.key)}
+              invalidSeconds={hasStepError(errors, presetId, step.key, 'seconds')}
               onChange={(patch) => patchStep(index, patch)}
               onMove={(delta) => move(index, delta)}
               onRemove={() => remove(index)}
@@ -91,7 +85,7 @@ function hasStepError(
   errors: readonly DraftError[],
   presetId: string,
   stepKey: string,
-  field: 'seconds' | 'tempC' | 'pourMl',
+  field: 'seconds',
 ): boolean {
   return errors.some(
     (e) => e.kind === 'step' && e.presetId === presetId && e.stepKey === stepKey && e.field === field,

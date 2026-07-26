@@ -15,18 +15,24 @@ type StepRowProps = {
   number: number | null
   isFirst: boolean
   isLast: boolean
-  invalid: { seconds: boolean; tempC: boolean; pourMl: boolean }
+  invalidSeconds: boolean
   onChange: (patch: Partial<StepDraft>) => void
   onMove: (delta: -1 | 1) => void
   onRemove: () => void
 }
 
+/**
+ * One row per pour. Time is the only thing that varies between pours, so that is
+ * the only number here — temperature lives on the preset, because you set it once
+ * and the water cools on its own. Keeping the row to a single line of inputs is
+ * what makes a ten-infusion tea readable.
+ */
 export function StepRow({
   step,
   number,
   isFirst,
   isLast,
-  invalid,
+  invalidSeconds,
   onChange,
   onMove,
   onRemove,
@@ -36,8 +42,8 @@ export function StepRow({
   const showParsed = seconds !== null && seconds >= 60 && !step.seconds.includes(':')
 
   return (
-    <li className="rounded-lg border border-border bg-background p-3">
-      <div className="mb-2.5 flex items-center gap-2">
+    <li className="rounded-lg border border-border bg-background p-2.5">
+      <div className="flex items-center gap-2">
         <span
           className={cn(
             'inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-md px-1.5 text-xs font-medium tabular',
@@ -46,9 +52,28 @@ export function StepRow({
         >
           {step.rinse ? '~' : number}
         </span>
-        <span className="flex-1 truncate text-xs text-muted-foreground">
-          {step.rinse ? t('editor.step.rinse') : t('brew.step', { n: number ?? 0 })}
-        </span>
+
+        <div className="relative w-24 shrink-0">
+          <Input
+            value={step.seconds}
+            inputMode="numeric"
+            aria-invalid={invalidSeconds}
+            aria-label={t('editor.step.seconds')}
+            data-testid="step-seconds"
+            placeholder="25"
+            className="tabular"
+            onChange={(e) => onChange({ seconds: e.target.value })}
+          />
+          {showParsed && (
+            <span className="pointer-events-none absolute -bottom-4 left-0 text-[10px] text-muted-foreground tabular">
+              {mmss(seconds)}
+            </span>
+          )}
+        </div>
+
+        {/* The badge already says which pour this is, so no text label here. */}
+        <span className="flex-1" />
+
         <Button
           type="button"
           variant="ghost"
@@ -80,79 +105,25 @@ export function StepRow({
         </Button>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
-        <Field label={t('editor.step.seconds')} hint={showParsed ? mmss(seconds) : undefined}>
-          <Input
-            value={step.seconds}
-            inputMode="numeric"
-            aria-invalid={invalid.seconds}
-            data-testid="step-seconds"
-            placeholder="25"
-            className="tabular"
-            onChange={(e) => onChange({ seconds: e.target.value })}
-          />
-        </Field>
-        <Field label={t('editor.step.temp')}>
-          <Input
-            value={step.tempC}
-            inputMode="numeric"
-            aria-invalid={invalid.tempC}
-            placeholder={t('common.none')}
-            className="tabular"
-            onChange={(e) => onChange({ tempC: e.target.value })}
-          />
-        </Field>
-        <Field label={t('editor.step.pour')}>
-          <Input
-            value={step.pourMl}
-            inputMode="numeric"
-            aria-invalid={invalid.pourMl}
-            placeholder={t('common.none')}
-            className="tabular"
-            onChange={(e) => onChange({ pourMl: e.target.value })}
-          />
-        </Field>
-      </div>
-
-      <div className="mt-2 flex items-end gap-3">
-        <Field label={t('editor.step.label')} className="flex-1">
-          <Input
-            value={step.label}
-            placeholder={t('editor.step.label.placeholder')}
-            onChange={(e) => onChange({ label: e.target.value })}
-          />
-        </Field>
-        <label className="flex h-9 shrink-0 items-center gap-2 text-xs text-muted-foreground">
+      {/* The label needs real width to be usable, so it gets its own line rather
+          than being squeezed next to the time and the buttons. */}
+      <div className="mt-2 flex items-center gap-3">
+        <Input
+          value={step.label}
+          aria-label={t('editor.step.label')}
+          placeholder={t('editor.step.label.placeholder')}
+          className="min-w-0 flex-1"
+          onChange={(e) => onChange({ label: e.target.value })}
+        />
+        <Label className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
           <Switch
             checked={step.rinse}
             onCheckedChange={(checked) => onChange({ rinse: checked })}
             aria-label={t('editor.step.rinse')}
           />
           {t('editor.step.rinse')}
-        </label>
+        </Label>
       </div>
     </li>
-  )
-}
-
-function Field({
-  label,
-  hint,
-  className,
-  children,
-}: {
-  label: string
-  hint?: string
-  className?: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className={cn('space-y-1', className)}>
-      <div className="flex items-baseline justify-between gap-1">
-        <Label className="text-xs text-muted-foreground">{label}</Label>
-        {hint !== undefined && <span className="text-xs text-muted-foreground tabular">{hint}</span>}
-      </div>
-      {children}
-    </div>
   )
 }

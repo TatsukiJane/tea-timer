@@ -48,7 +48,11 @@ export function CopyStepsDialog({ open, onOpenChange, sources, onPick }: CopySte
                   onClick={() => onPick(source)}
                 >
                   <span className="tabular">
-                    {presetLabel(Number(source.vesselVolume) || 0, Number(source.leafGrams) || 0)}
+                    {presetLabel(
+                      Number(source.vesselVolume) || 0,
+                      Number(source.leafGrams) || 0,
+                      Number(source.tempC) || undefined,
+                    )}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {countOf(source.steps.length, PLURALS.steps)}

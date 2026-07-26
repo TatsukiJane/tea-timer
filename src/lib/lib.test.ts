@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { base64ToBytes, base64ToUtf8, bytesToBase64, utf8ToBase64 } from './base64'
-import { mmss, msToClock, formatNumber } from './format'
+import { mmss, msToClock, formatNumber, presetLabel } from './format'
 import { shortId } from './id'
 import { imageFilePath, modeFilePath, slugify, transliterate, SLUG_FALLBACK } from './slug'
 
@@ -150,6 +150,12 @@ describe('formatting', () => {
     expect(msToClock(1)).toBe('0:01')
     expect(msToClock(0)).toBe('0:00')
     expect(msToClock(-500)).toBe('0:00')
+  })
+
+  it('builds the brewing context line, omitting an unset temperature', () => {
+    expect(presetLabel(150, 8, 95)).toBe('150 мл · 8 г · 95°')
+    expect(presetLabel(150, 8)).toBe('150 мл · 8 г')
+    expect(presetLabel(200, 10.5, 100)).toBe('200 мл · 10,5 г · 100°')
   })
 
   it('shows whole numbers without a decimal part and uses a comma otherwise', () => {
