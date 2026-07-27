@@ -65,12 +65,11 @@ export function StepRow({
           // seconds part (1:75); tidy it up once the field is left rather than
           // fighting the keystroke.
           onBlur={() => onChange({ seconds: normalizeDigits(step.seconds) })}
-          // Digits are appended, so the caret belongs at the end — a tap in the
-          // middle of "1:15" would otherwise insert in a surprising place.
-          onFocus={(e) => {
-            const input = e.currentTarget
-            requestAnimationFrame(() => input.setSelectionRange(input.value.length, input.value.length))
-          }}
+          // No caret handling on focus: the field fills left to right like ordinary
+          // text, so the browser's own behaviour is already right. Forcing the caret
+          // to the end (which the right-to-left version needed) also wiped out a
+          // select-all a frame after it was made, so "select everything and retype"
+          // deleted a single digit instead.
         />
 
         {/* The badge already says which pour this is, so no text label here. */}

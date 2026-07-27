@@ -1,12 +1,12 @@
 import { Outlet } from 'react-router'
 
-import { UpdatePrompt } from '@/components/pwa/UpdatePrompt'
+import { AutoUpdate } from '@/components/pwa/AutoUpdate'
 import { ConflictHost } from '@/components/sync/ConflictHost'
 import { Toaster } from '@/components/ui/sonner'
-import { useTimerBusy } from '@/state/useBusy'
+import { useBusy } from '@/state/useBusy'
 
 export function AppShell() {
-  const busy = useTimerBusy()
+  const busy = useBusy()
 
   return (
     <div className="min-h-dvh bg-background">
@@ -22,7 +22,8 @@ export function AppShell() {
       {/* Lives in the shell so a conflict can surface from any screen, including a
           push kicked off as the editor closes. */}
       <ConflictHost />
-      <UpdatePrompt busy={busy} />
+      {/* Updates apply themselves, but only when a reload cannot cost anything. */}
+      <AutoUpdate busy={busy} />
     </div>
   )
 }

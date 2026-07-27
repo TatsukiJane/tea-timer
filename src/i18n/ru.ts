@@ -174,8 +174,7 @@ export const ru = {
   'error.unknown': 'Не удалось выполнить: {message}',
   'error.notConfigured': 'Репозиторий или токен не настроены.',
 
-  'pwa.update.title': 'Доступно обновление',
-  'pwa.update.action': 'Обновить',
+  'pwa.updated': 'Приложение обновлено',
   'pwa.offlineReady': 'Готово к работе офлайн',
 } as const
 

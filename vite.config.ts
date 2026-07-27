@@ -16,9 +16,10 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      // 'prompt', not 'autoUpdate': an automatic update can reload the page mid-brew
-      // and kill a running timer. The prompt is also suppressed while a step runs —
-      // see components/pwa/UpdatePrompt.tsx.
+      // 'prompt', not 'autoUpdate' — which is not the same thing as asking the user.
+      // Updates are applied automatically; 'prompt' only means the app decides *when*,
+      // because 'autoUpdate' reloads the moment a new worker is ready and would kill a
+      // running infusion or an unsaved edit. See components/pwa/AutoUpdate.tsx.
       registerType: 'prompt',
       injectRegister: 'auto',
       includeAssets: ['favicon.svg', 'apple-touch-icon-180x180.png'],

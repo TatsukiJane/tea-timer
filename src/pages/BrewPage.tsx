@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { clearSession, getSession, setSession } from '@/db/settings'
 import { t } from '@/i18n'
-import { setTimerBusy } from '@/state/useBusy'
+import { setBusy } from '@/state/useBusy'
 import { usePrefs } from '@/state/useSettings'
 import { useMode } from '@/state/useModes'
 import {
@@ -173,12 +173,12 @@ export function BrewPage() {
    * the page hides, so it is re-acquired on the way back. */
   const running = timer.timer.kind === 'running'
 
-  // Tell the shell a step is in progress, so a service-worker update prompt cannot
-  // reload the page out from under a running infusion — or out from under an alarm
-  // that is still ringing, which a reload would silence without you noticing.
+  // Tell the shell a step is in progress, so an automatic update cannot reload the
+  // page out from under a running infusion — or out from under an alarm that is
+  // still ringing, which a reload would silence without you noticing.
   useEffect(() => {
-    setTimerBusy(running || ringing)
-    return () => setTimerBusy(false)
+    setBusy('timer', running || ringing)
+    return () => setBusy('timer', false)
   }, [running, ringing])
 
   useEffect(() => {

@@ -22,6 +22,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { deleteImage, putImage, type NewImage } from '@/db/images'
 import { t } from '@/i18n'
 import { processImageFile } from '@/lib/image'
+import { setBusy } from '@/state/useBusy'
 import { useBlobUrl, useImageUrl } from '@/state/useImage'
 import { persistMode, useMode } from '@/state/useModes'
 import { notifySyncStateChanged } from '@/state/useSync'
@@ -47,6 +48,17 @@ export function ModeEditPage() {
     if (loading) return
     setDraft(mode === undefined ? newModeDraft() : modeToDraft(mode))
   }, [id, loading, mode])
+
+  /**
+   * An open editor blocks the automatic update: it reloads the page, and everything
+   * typed here lives in component state until Save. Deliberately "open" rather than
+   * "modified" — tracking a diff against the stored record to win back an update
+   * that lands seconds later is not worth the chance of getting the diff wrong.
+   */
+  useEffect(() => {
+    setBusy('editor', draft !== null)
+    return () => setBusy('editor', false)
+  }, [draft])
 
   const storedImageUrl = useImageUrl(imageCleared ? undefined : id)
   const pendingImageUrl = useBlobUrl(pendingImage?.blob)
