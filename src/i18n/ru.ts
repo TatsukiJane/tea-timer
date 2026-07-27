@@ -5,6 +5,16 @@
  *
  * Interpolation uses {name} placeholders. Plurals are NOT baked into strings —
  * use `plural()` from ./index.ts, because Russian needs three forms.
+ *
+ * Conventions for the wording itself, so additions stay consistent:
+ *   — «вы» со строчной, никаких «Вы»;
+ *   — кнопка — это реплика пользователя: «Сохранить», «Сбросить», а не «Сохраняю»;
+ *   — лейбл называет данные («Метка»), а не действие ввода («Введите метку»);
+ *   — тумблер называет настройку и читается одинаково в обоих положениях;
+ *   — ошибка говорит, что случилось и что сделать, без «Ой» и «К сожалению»;
+ *   — точка не ставится в конце кнопок, лейблов, коротких заголовков и тостов;
+ *     в подсказках под полями — обычная проза с точками;
+ *   — «Внимание:» не используем: заголовок должен быть конкретным сам по себе.
  */
 export const ru = {
   'app.title': 'Чайный таймер',
@@ -13,11 +23,9 @@ export const ru = {
   'common.cancel': 'Отмена',
   'common.delete': 'Удалить',
   'common.back': 'Назад',
-  'common.add': 'Добавить',
   'common.close': 'Закрыть',
   'common.ml': 'мл',
   'common.g': 'г',
-  'common.sec': 'с',
   'common.none': '—',
   'common.loading': 'Загрузка…',
 
@@ -26,15 +34,18 @@ export const ru = {
 
   'modes.title': 'Мои чаи',
   'modes.empty.title': 'Пока ни одного чая',
-  'modes.empty.body': 'Добавьте первый чай — название, объём посуды, граммовку и времена проливов.',
+  // Кнопка ниже уже говорит «Добавить чай», поэтому здесь не повторяем призыв,
+  // а объясняем, из чего состоит запись.
+  'modes.empty.body':
+    'У каждого чая своя кривая времени: объём посуды, вес листа и время каждого пролива.',
   'modes.empty.cta': 'Добавить чай',
   'modes.card.brew': 'Заваривать',
   'modes.card.edit': 'Изменить',
   'modes.card.menu': 'Действия',
   'modes.delete.title': 'Удалить «{title}»?',
   'modes.delete.body':
-    'Запись удалится с устройства, а при следующей синхронизации — и файл в репозитории. Отменить нельзя.',
-  'modes.deleted': 'Удалено: {title}',
+    'Запись удалится с устройства, а при следующей синхронизации — файл в репозитории. Отменить нельзя.',
+  'modes.deleted': '«{title}» удалён',
 
   'editor.title.new': 'Новый чай',
   'editor.title.edit': 'Изменить чай',
@@ -46,34 +57,36 @@ export const ru = {
   'editor.field.image': 'Картинка',
   'editor.image.pick': 'Выбрать файл',
   'editor.image.remove': 'Убрать',
-  'editor.image.hint': 'Уменьшим до 512 px и сохраним в WebP.',
-  'editor.image.failed': 'Не удалось прочитать изображение',
-  'editor.presets': 'Пресеты по объёму',
+  'editor.image.hint': 'Уменьшится до 512 px, формат — WebP.',
+  'editor.image.failed': 'Не получилось открыть картинку',
+  'editor.presets': 'Объёмы посуды',
   'editor.preset.add': 'Добавить объём',
-  'editor.preset.remove': 'Удалить пресет',
-  'editor.preset.removeLast': 'Нужен хотя бы один пресет',
+  'editor.preset.remove': 'Удалить объём',
+  'editor.preset.removeLast': 'Оставьте хотя бы один объём',
   'editor.preset.volume': 'Посуда, мл',
   'editor.preset.grams': 'Лист, г',
   'editor.preset.temp': 'Вода, °C',
   'editor.preset.copyFrom': 'Скопировать проливы',
-  'editor.preset.copyFrom.title': 'Скопировать проливы из другого пресета',
-  'editor.preset.copyFrom.body': 'Текущие проливы этого пресета будут заменены.',
-  'editor.preset.copyFrom.empty': 'Больше нет пресетов, откуда копировать.',
+  'editor.preset.copyFrom.title': 'Откуда скопировать проливы',
+  'editor.preset.copyFrom.body': 'Проливы этого объёма заменятся.',
+  'editor.preset.copyFrom.empty': 'Других объёмов пока нет.',
   'editor.preset.copied': 'Проливы скопированы',
   'editor.steps': 'Проливы',
-  'editor.steps.empty': 'Ни одного пролива. Добавьте первый.',
+  'editor.steps.empty': 'Проливов пока нет',
   'editor.step.add': 'Добавить пролив',
   'editor.step.remove': 'Удалить пролив',
-  'editor.step.up': 'Выше',
-  'editor.step.down': 'Ниже',
+  'editor.step.up': 'Переместить выше',
+  'editor.step.down': 'Переместить ниже',
   'editor.step.seconds': 'Время',
   'editor.step.label': 'Метка',
-  'editor.step.label.placeholder': 'необязательно',
+  // Лейбл метки не выводится визуально — плейсхолдер работает за него, поэтому
+  // необязательность написана здесь, а не спрятана в подсказку.
+  'editor.step.label.placeholder': 'Метка, если нужна',
   'editor.step.rinse': 'Промывка',
   'editor.step.rinse.hint':
-    'Время набирается слева направо, сначала минуты — двоеточие ставится само: 0 4 5 → 0:45, 2 0 0 → 2:00, 1 0 3 0 → 10:30. Одна цифра — это минуты: 2 → 2:00. Промывка не считается проливом при нумерации. Температура задаётся один раз сверху — на все проливы.',
+    'Время набирается слева направо: 0 4 5 → 0:45, 2 0 0 → 2:00. Промывка не нумеруется: после неё идёт «Пролив 1».',
   'editor.saved': 'Сохранено',
-  'editor.invalid': 'Проверьте поля: время пролива должно быть больше нуля.',
+  'editor.invalid': 'Проверьте выделенные поля',
   'editor.needStep': 'Добавьте хотя бы один пролив',
 
   'brew.pickPreset': 'В чём заваривать?',
@@ -83,19 +96,17 @@ export const ru = {
   'brew.start': 'Старт',
   'brew.pause': 'Пауза',
   'brew.resume': 'Продолжить',
-  'brew.reset': 'Сброс',
+  'brew.reset': 'Сбросить',
   'brew.next': 'Далее',
   'brew.prev': 'Назад',
   'brew.ready': 'Готово — сливайте',
   'brew.silence': 'Отключить сигнал',
   'brew.finished': 'Все проливы пройдены',
-  'brew.finishedAgain': 'Начать заново',
   'brew.restore.title': 'Продолжить заваривание?',
-  'brew.restore.body': 'Вы не закончили заваривать «{title}».',
+  'brew.restore.body': 'Заваривание «{title}» не закончено.',
   'brew.restore.yes': 'Продолжить',
   'brew.restore.no': 'Начать заново',
-  'brew.iosHint': 'Не блокируйте экран: на iOS приложение засыпает и не сможет подать сигнал.',
-  'brew.temp': '{temp}°',
+  'brew.iosHint': 'Не блокируйте экран: на iOS приложение засыпает и сигнал не прозвучит.',
 
   'settings.title': 'Настройки',
   'settings.appearance': 'Оформление',
@@ -105,74 +116,79 @@ export const ru = {
   'settings.theme.dark': 'Тёмная',
   'settings.signals': 'Сигнал',
   'settings.sound': 'Звук',
-  'settings.sound.hint':
-    'Сигнал повторяется, пока не отключите его на экране заваривания. Кнопка ниже проиграет его один раз.',
+  'settings.sound.hint': 'Повторяется, пока не отключите на экране заваривания.',
   'settings.vibration': 'Вибрация',
   'settings.vibration.unsupported': 'Не поддерживается на этом устройстве',
-  'settings.wakeLock': 'Не гасить экран',
-  'settings.wakeLock.hint': 'Пока идёт пролив, экран остаётся включённым.',
+  // Тумблер называет состояние, а не приказ: читается одинаково и включённым,
+  // и выключенным.
+  'settings.wakeLock': 'Экран не гаснет',
+  'settings.wakeLock.hint': 'Только пока идёт пролив.',
   'settings.wakeLock.unsupported': 'Не поддерживается на этом устройстве',
   'settings.test': 'Проверить сигнал',
 
   'settings.github': 'Синхронизация с GitHub',
   'settings.github.hint':
-    'Каждый чай сохраняется отдельным .md-файлом в вашем приватном репозитории — его можно открыть в Obsidian. Приложение полностью работает и без этого.',
-  'settings.github.owner': 'Владелец (owner)',
+    'Каждый чай — отдельный .md-файл в вашем приватном репозитории. Файлы читаются в Obsidian, а без синхронизации приложение работает так же.',
+  'settings.github.owner': 'Владелец на GitHub',
   'settings.github.repo': 'Репозиторий',
   'settings.github.branch': 'Ветка',
   'settings.github.branch.hint':
-    'Ветка репозитория-хранилища, куда пишутся записи. К репозиторию с кодом отношения не имеет.',
+    'Ветка репозитория с записями. К репозиторию с кодом приложения отношения не имеет.',
   'settings.github.modesDir': 'Папка для записей',
   'settings.github.assetsDir': 'Папка для картинок',
-  'settings.github.token': 'Токен доступа (fine-grained PAT)',
+  'settings.github.token': 'Токен доступа',
   'settings.github.token.warning':
-    'Токен хранится в этом браузере. Не вводите его на чужом устройстве. Достаточно доступа Contents: Read and write к одному репозиторию.',
+    'Нужен fine-grained PAT с доступом Contents: Read and write к одному репозиторию. Токен хранится только в этом браузере — не вводите его на чужом устройстве.',
+  // Отдельная надпись: рядом уже есть «Сохранить» для всего блока, и две
+  // одинаковые кнопки в одном экране не различить.
+  'settings.github.token.save': 'Сохранить токен',
   'settings.github.token.set': 'Токен сохранён',
-  'settings.github.token.clear': 'Очистить токен',
+  'settings.github.token.clear': 'Удалить токен',
   'settings.github.token.cleared': 'Токен удалён',
   'settings.github.check': 'Проверить доступ',
-  'settings.github.checking': 'Проверяю…',
-  'settings.github.ok': 'Доступ есть: ветка {branch}, запись {write}.',
+  'settings.github.checking': 'Проверка…',
+  'settings.github.ok': 'Доступ есть. Ветка {branch}, запись {write}.',
   'settings.github.branchMismatch':
-    'Внимание: в репозитории основная ветка — {default}, а указана {configured}. Записи уйдут в {configured}, и в Obsidian на ветке {default} вы их не увидите. Обычно нужно поставить {default}.',
+    'В репозитории основная ветка — {default}, а указана {configured}. Записи уйдут в {configured}, и в Obsidian на ветке {default} их не будет. Обычно ставят {default}.',
   'settings.github.ok.write': 'разрешена',
   'settings.github.ok.noWrite': 'запрещена',
   'settings.github.ok.privateYes': 'Репозиторий приватный.',
-  'settings.github.ok.privateNo': 'Внимание: репозиторий публичный — записи о чаях увидят все.',
-  'settings.github.dirMissing': 'Папка {dir} ещё не создана — появится при первом сохранении.',
+  'settings.github.ok.privateNo': 'Репозиторий публичный — записи о чаях увидят все.',
+  'settings.github.dirMissing': 'Папки {dir} пока нет — появится при первом сохранении.',
   'settings.saved': 'Настройки сохранены',
 
   'sync.button': 'Синхронизировать',
   'sync.running': 'Синхронизация…',
-  'sync.notConfigured': 'Сначала укажите репозиторий и токен в настройках.',
+  'sync.notConfigured': 'Укажите репозиторий и токен в настройках',
   'sync.pending': 'Не отправлено: {count}',
-  'sync.pushFailed': 'Не синхронизировано — нажмите «Синхронизировать»',
+  'sync.pushFailed': 'Не отправилось в репозиторий — синхронизируйте вручную',
   'sync.done': 'Синхронизировано: {count}',
   'sync.doneWithErrors': 'Синхронизировано: {count}, ошибок: {errors}',
   'sync.localOnly': 'Только на устройстве: {count}',
   'sync.never': 'Ещё не синхронизировано',
   'sync.lastAt': 'Синхронизация: {when}',
 
-  'conflict.title': 'В репозитории более новая версия',
+  'conflict.title': 'В репозитории версия новее',
   'conflict.body':
-    'Файл «{title}» изменился в репозитории после вашей последней отправки — вероятно, с другого устройства.',
+    'Файл «{title}» изменился после последней отправки — скорее всего, с другого устройства.',
   'conflict.remoteLabel': 'В репозитории',
   'conflict.localLabel': 'На этом устройстве',
-  'conflict.overwrite': 'Перезаписать своей',
+  // Кнопки различаются по смыслу и обе называют, где окажется результат.
+  'conflict.overwrite': 'Перезаписать в репозитории',
   'conflict.takeRemote': 'Взять из репозитория',
   'conflict.later': 'Решить позже',
 
-  'error.offline': 'Нет сети',
-  'error.auth': 'Токен недействителен или истёк. Проверьте его в настройках.',
+  'error.offline': 'Нет подключения к интернету',
+  'error.auth': 'Токен недействителен или истёк. Проверьте его в настройках',
   'error.forbidden':
-    'Доступ запрещён. Проверьте: у токена есть право Contents: Read and write; этот репозиторий выбран в списке доступных токену; если репозиторий в организации — доступ по SSO авторизован.',
-  'error.notFound': 'Репозиторий не найден или токен не даёт к нему доступа.',
-  'error.conflict': 'Файл изменился в репозитории во время записи. Попробуйте ещё раз.',
-  'error.rateLimit': 'Лимит запросов GitHub исчерпан. Повторите после {when}.',
-  'error.network': 'Сеть недоступна или GitHub не ответил.',
-  'error.badFile': 'Файл {name}: не удалось разобрать frontmatter.',
-  'error.unknown': 'Не удалось выполнить: {message}',
-  'error.notConfigured': 'Репозиторий или токен не настроены.',
+    'Нет доступа. Проверьте у токена: право Contents: Read and write, этот репозиторий в списке доступных, авторизацию SSO, если репозиторий в организации',
+  'error.notFound': 'Репозиторий не найден или токен не даёт к нему доступа',
+  'error.conflict': 'Файл изменился в репозитории во время записи. Попробуйте ещё раз',
+  'error.rateLimit': 'Лимит запросов GitHub исчерпан. Повторите после {when}',
+  'error.network': 'Не получилось связаться с GitHub. Попробуйте позже',
+  'error.badFile': 'Файл {name}: не получилось разобрать frontmatter',
+  'error.unknown': 'Не получилось: {message}',
+  'error.notConfigured': 'Репозиторий или токен не заданы',
 
   'pwa.updated': 'Приложение обновлено',
   'pwa.offlineReady': 'Готово к работе офлайн',

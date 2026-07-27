@@ -63,7 +63,7 @@ export function TokenField({ hasToken, onSave, onClear }: TokenFieldProps) {
           data-testid="save-token"
           onClick={submit}
         >
-          {t('common.save')}
+          {t('settings.github.token.save')}
         </Button>
         {hasToken && (
           <>
