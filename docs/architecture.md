@@ -29,7 +29,8 @@ GitHub — это бэкап. Ни один пользовательский с�
 src/
   main.tsx            точка входа: тема до первой отрисовки, разблокировка звука,
                       слив очереди синхронизации
-  routes.tsx          hash-роутер, пять маршрутов
+  routes.tsx          hash-роутер: список, редактор, заваривание, настройки,
+                      плюс редирект на главную с неизвестного пути
   index.css           вся тема между маркерами THEME START / THEME END
 
   types/brew.ts       BrewMode / VolumePreset / BrewStep, zod-схемы,
@@ -44,7 +45,8 @@ src/
   timer/
     engine.ts         чистый автомат, ядро корректности. + engine.test.ts
     useStepTimer.ts   привязка к React: будильник, сверка при пробуждении, rAF
-    alarm.ts          звук осциллятором, вибро, wake lock
+    alarm.ts          сигнал осциллятором (повторяется до отключения), вибро,
+                      wake lock
 
   md/
     serialize.ts      BrewMode → markdown (frontmatter + тело)
@@ -76,13 +78,14 @@ e2e/update.mjs        отдельный прогон: автообновлен�
 .github/workflows/deploy.yml   сборка + публикация на Pages, с проверкой base path
 ```
 
-Точки, где сосредоточена сложность: `timer/engine.ts`, `md/serialize.ts`,
-`sync/syncService.ts`, `db/schema.ts` и `vite.config.ts`. Если правка касается их —
-сначала прочитай соответствующий раздел ниже или отдельный документ.
+Точки, где сосредоточена сложность: `timer/engine.ts`, `timer/alarm.ts`,
+`md/serialize.ts`, `sync/syncService.ts`, `components/pwa/AutoUpdate.tsx`,
+`db/schema.ts` и `vite.config.ts`. Если правка касается их — сначала прочитай
+соответствующий раздел ниже или отдельный документ.
 
 ## Хранилище
 
-IndexedDB через `idb`, база `tea-timer`, пять стора. Схема и назначение каждого —
+IndexedDB через `idb`, база `tea-timer`, пять сторов. Схема и назначение каждого —
 в `src/db/schema.ts`; модель данных — в `docs/data-model.md`.
 
 Миграции: добавляй блок `if (oldVersion < N)` в `src/db/index.ts` и поднимай
