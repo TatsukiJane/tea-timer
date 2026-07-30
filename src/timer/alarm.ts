@@ -6,6 +6,9 @@
  * <audio> autoplay-policy edge cases, and it works offline by construction.
  */
 
+import type { SignalVolume } from '@/db/schema'
+import { startAttention, stopAttention } from '@/timer/attention'
+
 let ctx: AudioContext | null = null
 let unlockInstalled = false
 
@@ -71,6 +74,27 @@ const PIP_MS = 130
 const PIP_GAP_MS = 90
 const PIP_HZ = 880
 
+/**
+ * Peak amplitude per volume level.
+ *
+ * `high` stops just short of full scale rather than at it, to leave the summed
+ * partials below clipping with a little margin for the envelope ramps.
+ */
+const PEAKS: Record<SignalVolume, number> = { low: 0.3, medium: 0.6, high: 0.95 }
+
+/**
+ * A pip is a fundamental plus one octave, not a bare sine.
+ *
+ * A pure 880 Hz sine at full scale still gets swallowed by a kettle and an
+ * extractor fan; the octave gives the sound an edge that carries. The two
+ * amplitudes must sum to 1 — partials in phase add at the peak, so splitting the
+ * level is what keeps `high` out of clipping instead of relying on headroom.
+ */
+const PARTIALS: readonly { hz: number; share: number }[] = [
+  { hz: PIP_HZ, share: 0.78 },
+  { hz: PIP_HZ * 2, share: 0.22 },
+]
+
 type Voice = { osc: OscillatorNode; endsAt: number }
 
 /**
@@ -80,37 +104,53 @@ type Voice = { osc: OscillatorNode; endsAt: number }
  * what makes the repeating alarm below survive a throttled tab: the AudioContext
  * clock keeps running even when timers are down to one callback per minute.
  */
-function scheduleBurst(audio: AudioContext, at: number, destination: AudioNode): Voice[] {
+function scheduleBurst(
+  audio: AudioContext,
+  at: number,
+  destination: AudioNode,
+  volume: SignalVolume,
+): Voice[] {
   const voices: Voice[] = []
+  const peak = PEAKS[volume]
   for (let i = 0; i < PIP_COUNT; i++) {
     const pipAt = at + (i * (PIP_MS + PIP_GAP_MS)) / 1000
     const endsAt = pipAt + PIP_MS / 1000
-    const osc = audio.createOscillator()
-    const gain = audio.createGain()
-    osc.type = 'sine'
-    osc.frequency.value = PIP_HZ
-    // Short attack/decay envelope: a bare gate would click audibly.
-    gain.gain.setValueAtTime(0, pipAt)
-    gain.gain.linearRampToValueAtTime(0.28, pipAt + 0.012)
-    gain.gain.setValueAtTime(0.28, endsAt - 0.03)
-    gain.gain.linearRampToValueAtTime(0, endsAt)
-    osc.connect(gain).connect(destination)
-    osc.start(pipAt)
-    osc.stop(endsAt + 0.01)
-    voices.push({ osc, endsAt })
+    for (const partial of PARTIALS) {
+      const level = peak * partial.share
+      const osc = audio.createOscillator()
+      const gain = audio.createGain()
+      osc.type = 'sine'
+      osc.frequency.value = partial.hz
+      // Short attack/decay envelope: a bare gate would click audibly.
+      gain.gain.setValueAtTime(0, pipAt)
+      gain.gain.linearRampToValueAtTime(level, pipAt + 0.012)
+      gain.gain.setValueAtTime(level, endsAt - 0.03)
+      gain.gain.linearRampToValueAtTime(0, endsAt)
+      osc.connect(gain).connect(destination)
+      osc.start(pipAt)
+      osc.stop(endsAt + 0.01)
+      voices.push({ osc, endsAt })
+    }
   }
   return voices
 }
 
 /** Three short pips, once. Returns immediately; the sound plays on the audio thread. */
-export function playBeep(): void {
+export function playBeep(volume: SignalVolume): void {
   const audio = getContext()
   if (!audio) return
   void resumeAudio()
-  scheduleBurst(audio, audio.currentTime + 0.02, audio.destination)
+  scheduleBurst(audio, audio.currentTime + 0.02, audio.destination, volume)
 }
 
-const VIBRATE_PATTERN = [180, 90, 180, 90, 360]
+/**
+ * One buzz per pip, of exactly the pip's length — the point of the vibration is
+ * to be the same signal through a different sense, so it is derived from the pip
+ * constants rather than written out by hand. Editing the pips re-derives it.
+ */
+const VIBRATE_PATTERN = Array.from({ length: PIP_COUNT * 2 - 1 }, (_, i) =>
+  i % 2 === 0 ? PIP_MS : PIP_GAP_MS,
+)
 
 /** Not available on iOS Safari at all — feature-detect before offering the toggle. */
 export function vibrationSupported(): boolean {
@@ -126,11 +166,23 @@ export function vibrate(): void {
   }
 }
 
-export type SignalPrefs = { sound: boolean; vibration: boolean }
+export type SignalPrefs = {
+  sound: boolean
+  volume: SignalVolume
+  vibration: boolean
+  /** Badge on the app icon and a blinking window title. Ignored by `fireAlarm`. */
+  attention: boolean
+}
 
-/** One-shot signal. Used by the "test signal" button in settings. */
+/**
+ * One-shot signal. Used by the "test signal" button in settings.
+ *
+ * Deliberately does not raise the attention channels: you are looking at the
+ * settings screen when you press it, and a badge lit by a one-shot would have
+ * nothing to switch it off again.
+ */
 export function fireAlarm(prefs: SignalPrefs): void {
-  if (prefs.sound) playBeep()
+  if (prefs.sound) playBeep(prefs.volume)
   if (prefs.vibration) vibrate()
 }
 
@@ -151,13 +203,23 @@ const CYCLE_MS = 2400
 const SCHEDULE_AHEAD_MS = 90_000
 const TOP_UP_MS = 2000
 
-let alarmPrefs: SignalPrefs = { sound: false, vibration: false }
+const SILENT_PREFS: SignalPrefs = {
+  sound: false,
+  volume: 'high',
+  vibration: false,
+  attention: false,
+}
+
+let alarmPrefs: SignalPrefs = SILENT_PREFS
 let alarmInterval: number | undefined
 let alarmGain: GainNode | null = null
 let alarmVoices: Voice[] = []
 /** Audio-clock time up to which bursts are already scheduled, in seconds. */
 let scheduledUntil = 0
+/** Audio-clock time of this series' first burst — the beat the vibration follows. */
+let firstBurstAt = 0
 let lastVibrateAt = 0
+let vibrateTimer: number | undefined
 
 /** True while the repeating signal is sounding. */
 export function alarmRinging(): boolean {
@@ -170,9 +232,9 @@ export function alarmRinging(): boolean {
  * Everything hangs off one gain node so stopping is a single ramp to zero rather
  * than chasing down individual voices.
  */
-export function startAlarm(prefs: SignalPrefs): void {
+export function startAlarm(prefs: SignalPrefs, attentionTitle: string): void {
   stopAlarm()
-  if (!prefs.sound && !prefs.vibration) return
+  if (!prefs.sound && !prefs.vibration && !prefs.attention) return
   alarmPrefs = prefs
 
   if (prefs.sound) {
@@ -185,10 +247,12 @@ export function startAlarm(prefs: SignalPrefs): void {
       // A suspended context has a frozen currentTime, so nothing scheduled here
       // is lost — it plays from the start once the context resumes.
       scheduledUntil = audio.currentTime + 0.02
+      firstBurstAt = scheduledUntil
       topUpAudio()
     }
   }
   if (prefs.vibration) vibrateCycle()
+  if (prefs.attention) startAttention(attentionTitle)
 
   alarmInterval = window.setInterval(pulse, TOP_UP_MS)
 }
@@ -199,6 +263,14 @@ export function stopAlarm(): void {
     clearInterval(alarmInterval)
     alarmInterval = undefined
   }
+  if (vibrateTimer !== undefined) {
+    clearTimeout(vibrateTimer)
+    vibrateTimer = undefined
+  }
+  // Unconditional, not `if (alarmPrefs.attention)`: leaving a blinking title with
+  // nothing left to switch it off is the same class of bug as a beeping page.
+  stopAttention()
+  alarmPrefs = SILENT_PREFS
 
   const gain = alarmGain
   alarmGain = null
@@ -238,7 +310,48 @@ export function stopAlarm(): void {
 
 function pulse(): void {
   if (alarmPrefs.sound) topUpAudio()
-  if (alarmPrefs.vibration && Date.now() - lastVibrateAt >= CYCLE_MS) vibrateCycle()
+  if (alarmPrefs.vibration) queueVibrate()
+}
+
+/**
+ * Lines the vibration up with the pips instead of with wall-clock time.
+ *
+ * The pips live on the audio clock, `pulse()` runs on a 2 s interval, and the
+ * cycle is 2.4 s — so re-issuing the vibration "whenever 2.4 s have passed since
+ * the last one" drifted against the sound by up to 400 ms every cycle. Here the
+ * next burst is read back off the audio clock and the buzz is held on a short
+ * timeout until that instant.
+ *
+ * This does not move the sound onto a timer: bursts are still scheduled 90 s
+ * ahead. Only the vibration waits, because vibration cannot be scheduled ahead
+ * at all. In a hidden tab `pulse()` is throttled to about one call per second, so
+ * the buzz still lands inside its own cycle but not on the millisecond — that is
+ * as close as the platform allows.
+ */
+function queueVibrate(): void {
+  if (vibrateTimer !== undefined) return
+  // Guards a double buzz when a pulse happens to land exactly on a burst.
+  if (Date.now() - lastVibrateAt < CYCLE_MS / 2) return
+
+  const delay = nextBurstDelayMs()
+  if (delay > TOP_UP_MS) return
+  vibrateTimer = window.setTimeout(() => {
+    vibrateTimer = undefined
+    vibrateCycle()
+  }, delay)
+}
+
+/** Milliseconds until the next burst of pips starts. */
+function nextBurstDelayMs(): number {
+  const audio = ctx
+  if (alarmPrefs.sound && audio !== null && alarmGain !== null) {
+    const cycle = CYCLE_MS / 1000
+    const elapsed = audio.currentTime - firstBurstAt
+    const next = firstBurstAt + Math.max(0, Math.ceil(elapsed / cycle)) * cycle
+    return Math.max(0, (next - audio.currentTime) * 1000)
+  }
+  // Sound is off, so there is no audio clock to follow: keep the plain cycle.
+  return Math.max(0, CYCLE_MS - (Date.now() - lastVibrateAt))
 }
 
 /** Extends the scheduled bursts out to the horizon and drops spent voices. */
@@ -248,11 +361,15 @@ function topUpAudio(): void {
 
   const now = audio.currentTime
   alarmVoices = alarmVoices.filter((voice) => voice.endsAt > now)
-  if (scheduledUntil < now) scheduledUntil = now + 0.02
+  if (scheduledUntil < now) {
+    scheduledUntil = now + 0.02
+    // The beat restarted, so the vibration has a new phase to follow.
+    firstBurstAt = scheduledUntil
+  }
 
   const horizon = now + SCHEDULE_AHEAD_MS / 1000
   while (scheduledUntil < horizon) {
-    alarmVoices.push(...scheduleBurst(audio, scheduledUntil, alarmGain))
+    alarmVoices.push(...scheduleBurst(audio, scheduledUntil, alarmGain, alarmPrefs.volume))
     scheduledUntil += CYCLE_MS / 1000
   }
 }

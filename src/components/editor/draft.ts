@@ -98,6 +98,33 @@ export function modeToDraft(mode: BrewMode): ModeDraft {
   }
 }
 
+/**
+ * A draft that is a copy of an existing tea, as a brand-new record.
+ *
+ * Everything identifying is re-minted: the mode id, every preset id (a preset id
+ * is referenced by the stored brew session), and — via `stepToDraft` — the React
+ * keys. `createdAt` is now, not the original's, or the copy would land in the
+ * middle of the list sorted by date.
+ *
+ * `image` is dropped on purpose. It is a repository path derived from the *mode
+ * id* (`lib/slug.ts`), so carrying it over would make the copy's .md point at the
+ * original's asset. The picture travels as bytes instead: the caller re-attaches
+ * the blob under the new id, and the push path computes the new path from it.
+ */
+export function copyModeDraft(mode: BrewMode, title: string): ModeDraft {
+  const now = new Date().toISOString()
+  const source = modeToDraft(mode)
+  return {
+    ...source,
+    id: newId(),
+    title,
+    image: undefined,
+    presets: source.presets.map((preset) => ({ ...preset, id: newId() })),
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
 export function newModeDraft(): ModeDraft {
   const now = new Date().toISOString()
   return {

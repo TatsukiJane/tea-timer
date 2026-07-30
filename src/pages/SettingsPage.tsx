@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import type { SignalVolume } from '@/db/schema'
 import { getToken } from '@/db/settings'
 import { cn } from '@/lib/utils'
 import { t } from '@/i18n'
@@ -137,12 +138,39 @@ export function SettingsPage() {
             checked={prefs.sound}
             onChange={(sound) => void update({ sound })}
           />
+          <div className="space-y-1.5">
+            <Label>{t('settings.volume')}</Label>
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              value={prefs.volume}
+              className="w-full"
+              disabled={!prefs.sound}
+              onValueChange={(value) => value !== '' && void update({ volume: value as SignalVolume })}
+            >
+              <ToggleGroupItem value="low" className="flex-1" data-testid="volume-low">
+                {t('settings.volume.low')}
+              </ToggleGroupItem>
+              <ToggleGroupItem value="medium" className="flex-1" data-testid="volume-medium">
+                {t('settings.volume.medium')}
+              </ToggleGroupItem>
+              <ToggleGroupItem value="high" className="flex-1" data-testid="volume-high">
+                {t('settings.volume.high')}
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
           <ToggleRow
             label={t('settings.vibration')}
             hint={canVibrate ? undefined : t('settings.vibration.unsupported')}
             checked={prefs.vibration && canVibrate}
             disabled={!canVibrate}
             onChange={(vibration) => void update({ vibration })}
+          />
+          <ToggleRow
+            label={t('settings.attention')}
+            hint={t('settings.attention.hint')}
+            checked={prefs.attention}
+            onChange={(attention) => void update({ attention })}
           />
           <ToggleRow
             label={t('settings.wakeLock')}
@@ -157,7 +185,16 @@ export function SettingsPage() {
             variant="outline"
             size="lg"
             data-testid="test-signal"
-            onClick={() => fireAlarm({ sound: prefs.sound, vibration: prefs.vibration && canVibrate })}
+            // The attention channels are deliberately left out: you are looking at
+            // this screen, and a one-shot has nothing to lower them again.
+            onClick={() =>
+              fireAlarm({
+                sound: prefs.sound,
+                volume: prefs.volume,
+                vibration: prefs.vibration && canVibrate,
+                attention: false,
+              })
+            }
           >
             <BellRingIcon />
             {t('settings.test')}

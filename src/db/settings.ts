@@ -3,7 +3,9 @@ import type { BrewSession, GithubConfig, Prefs } from './schema'
 
 export const DEFAULT_PREFS: Prefs = {
   sound: true,
+  volume: 'high',
   vibration: true,
+  attention: true,
   wakeLock: true,
 }
 

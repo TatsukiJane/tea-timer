@@ -41,7 +41,11 @@ export const ru = {
   'modes.empty.cta': 'Добавить чай',
   'modes.card.brew': 'Заваривать',
   'modes.card.edit': 'Изменить',
+  'modes.card.duplicate': 'Дублировать',
   'modes.card.menu': 'Действия',
+  // Единственная строка отсюда, которая становится данными: она попадает в title
+  // записи и в имя .md-файла, а не только на экран.
+  'modes.duplicate.title': '{title} (копия)',
   'modes.delete.title': 'Удалить «{title}»?',
   'modes.delete.body':
     'Запись удалится с устройства, а при следующей синхронизации — файл в репозитории. Отменить нельзя.',
@@ -49,6 +53,7 @@ export const ru = {
 
   'editor.title.new': 'Новый чай',
   'editor.title.edit': 'Изменить чай',
+  'editor.title.duplicate': 'Копия чая',
   'editor.field.title': 'Название',
   'editor.field.title.placeholder': 'Шу Пуэр 2018',
   'editor.field.title.required': 'Укажите название',
@@ -91,6 +96,7 @@ export const ru = {
 
   'brew.pickPreset': 'В чём заваривать?',
   'brew.step': 'Пролив {n}',
+  'brew.stepDone': 'Пройден',
   'brew.rinse': 'Промывка',
   'brew.of': 'из {total}',
   'brew.start': 'Старт',
@@ -107,6 +113,9 @@ export const ru = {
   'brew.restore.yes': 'Продолжить',
   'brew.restore.no': 'Начать заново',
   'brew.iosHint': 'Не блокируйте экран: на iOS приложение засыпает и сигнал не прозвучит.',
+  // Заголовок окна, пока сигнал звучит и окно не в фокусе. Знак впереди — чтобы
+  // строка читалась на панели задач, где видно только начало.
+  'attention.flash': '⏰ Готово — сливайте',
 
   'settings.title': 'Настройки',
   'settings.appearance': 'Оформление',
@@ -117,8 +126,15 @@ export const ru = {
   'settings.signals': 'Сигнал',
   'settings.sound': 'Звук',
   'settings.sound.hint': 'Повторяется, пока не отключите на экране заваривания.',
+  'settings.volume': 'Громкость сигнала',
+  'settings.volume.low': 'Тихо',
+  'settings.volume.medium': 'Средне',
+  'settings.volume.high': 'Громко',
   'settings.vibration': 'Вибрация',
   'settings.vibration.unsupported': 'Не поддерживается на этом устройстве',
+  'settings.attention': 'Значок приложения и заголовок окна',
+  'settings.attention.hint':
+    'Пока сигнал звучит: точка на значке и мигающий заголовок. Видно, когда окно свёрнуто.',
   // Тумблер называет состояние, а не приказ: читается одинаково и включённым,
   // и выключенным.
   'settings.wakeLock': 'Экран не гаснет',
