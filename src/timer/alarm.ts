@@ -75,20 +75,23 @@ const PIP_GAP_MS = 90
 const PIP_HZ = 880
 
 /**
- * Peak amplitude per volume level.
+ * Peak amplitude per volume level, set by ear rather than by headroom.
  *
- * `high` stops just short of full scale rather than at it, to leave the summed
- * partials below clipping with a little margin for the envelope ramps.
+ * `high` sat near full scale at first, which did carry over music — and hurt.
+ * Adding the octave below made the pip cut through at a much lower level than a
+ * bare sine needed, so the whole table came down about 4 dB per step; the steps
+ * are spaced evenly so each one is an audible move rather than a nudge.
  */
-const PEAKS: Record<SignalVolume, number> = { low: 0.3, medium: 0.6, high: 0.95 }
+const PEAKS: Record<SignalVolume, number> = { low: 0.22, medium: 0.36, high: 0.6 }
 
 /**
  * A pip is a fundamental plus one octave, not a bare sine.
  *
- * A pure 880 Hz sine at full scale still gets swallowed by a kettle and an
- * extractor fan; the octave gives the sound an edge that carries. The two
- * amplitudes must sum to 1 — partials in phase add at the peak, so splitting the
- * level is what keeps `high` out of clipping instead of relying on headroom.
+ * A pure 880 Hz sine gets swallowed by a kettle, an extractor fan or music even
+ * at full scale; the octave gives the sound an edge that carries, which is what
+ * let the levels above come down. The two amplitudes must sum to 1 — partials in
+ * phase add at the peak, so splitting the level is what keeps a peak of `1` a
+ * peak of `1` instead of clipping.
  */
 const PARTIALS: readonly { hz: number; share: number }[] = [
   { hz: PIP_HZ, share: 0.78 },
