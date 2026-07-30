@@ -1,4 +1,4 @@
-import { LeafIcon, MoreVerticalIcon, PencilIcon, PlayIcon, Trash2Icon } from 'lucide-react'
+import { CopyIcon, LeafIcon, MoreVerticalIcon, PencilIcon, PlayIcon, Trash2Icon } from 'lucide-react'
 import { Link } from 'react-router'
 
 import { Badge } from '@/components/ui/badge'
@@ -79,6 +79,14 @@ export function ModeCard({ mode, onDelete }: ModeCardProps) {
               <Link to={`/mode/${mode.id}/edit`}>
                 <PencilIcon />
                 {t('modes.card.edit')}
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              {/* Opens the editor on an unsaved copy, so a near-identical tea can be
+                  renamed and adjusted before it becomes a record. */}
+              <Link to={`/mode/new?from=${mode.id}`}>
+                <CopyIcon />
+                {t('modes.card.duplicate')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem variant="destructive" onSelect={() => onDelete(mode)}>

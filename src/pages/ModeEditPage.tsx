@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { PlusIcon, SaveIcon } from 'lucide-react'
-import { useNavigate, useParams } from 'react-router'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 
 import { TopBar } from '@/components/layout/TopBar'
 import { ImagePicker } from '@/components/editor/ImagePicker'
 import { PresetEditor } from '@/components/editor/PresetEditor'
 import {
+  copyModeDraft,
   draftToMode,
   modeToDraft,
   newModeDraft,
@@ -19,7 +20,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { deleteImage, putImage, type NewImage } from '@/db/images'
+import { deleteImage, getImage, putImage, type NewImage } from '@/db/images'
 import { t } from '@/i18n'
 import { processImageFile } from '@/lib/image'
 import { setBusy } from '@/state/useBusy'
@@ -30,8 +31,15 @@ import { requestPush } from '@/sync/syncService'
 
 export function ModeEditPage() {
   const { id } = useParams<{ id: string }>()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { mode, loading } = useMode(id)
+
+  /**
+   * `/mode/new?from=<id>` seeds the form with a copy of an existing tea. Nothing
+   * is written until Save, so backing out of a duplicate leaves no record behind.
+   */
+  const copyFrom = id === undefined ? (searchParams.get('from') ?? undefined) : undefined
+  const { mode, loading } = useMode(id ?? copyFrom)
 
   const [draft, setDraft] = useState<ModeDraft | null>(null)
   const [errors, setErrors] = useState<DraftError[]>([])
@@ -41,13 +49,44 @@ export function ModeEditPage() {
 
   // Seed the draft once the record is known (or immediately, when creating).
   useEffect(() => {
-    if (id === undefined) {
+    if (id === undefined && copyFrom === undefined) {
       setDraft(newModeDraft())
       return
     }
     if (loading) return
-    setDraft(mode === undefined ? newModeDraft() : modeToDraft(mode))
-  }, [id, loading, mode])
+    if (mode === undefined) {
+      setDraft(newModeDraft())
+      return
+    }
+    setDraft(
+      copyFrom === undefined
+        ? modeToDraft(mode)
+        : copyModeDraft(mode, t('modes.duplicate.title', { title: mode.title })),
+    )
+  }, [id, copyFrom, loading, mode])
+
+  /**
+   * Carries the picture into a copy as bytes rather than as a path: it rides along
+   * as a pending image, so Save stores it under the copy's own id and the sync
+   * layer derives a fresh asset path from there.
+   */
+  useEffect(() => {
+    if (copyFrom === undefined) return
+    let alive = true
+    void getImage(copyFrom).then((stored) => {
+      if (!alive || stored === undefined) return
+      setPendingImage({
+        blob: stored.blob,
+        mime: stored.mime,
+        ext: stored.ext,
+        width: stored.width,
+        height: stored.height,
+      })
+    })
+    return () => {
+      alive = false
+    }
+  }, [copyFrom])
 
   /**
    * An open editor blocks the automatic update: it reloads the page, and everything
@@ -145,7 +184,13 @@ export function ModeEditPage() {
   return (
     <>
       <TopBar
-        title={isNew ? t('editor.title.new') : t('editor.title.edit')}
+        title={
+          copyFrom !== undefined
+            ? t('editor.title.duplicate')
+            : isNew
+              ? t('editor.title.new')
+              : t('editor.title.edit')
+        }
         backTo="/"
         actions={
           <Button size="lg" disabled={saving} data-testid="save-mode" onClick={() => void handleSave()}>

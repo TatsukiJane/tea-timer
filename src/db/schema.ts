@@ -23,9 +23,16 @@ export type GithubConfig = {
   assetsDir: string
 }
 
+/** Loudness of the end-of-step pips. Three steps rather than a slider: the useful
+ * range is "quiet room / kitchen / another room", not a continuum. */
+export type SignalVolume = 'low' | 'medium' | 'high'
+
 export type Prefs = {
   sound: boolean
+  volume: SignalVolume
   vibration: boolean
+  /** App-icon badge and a blinking window title while the signal is ringing. */
+  attention: boolean
   wakeLock: boolean
 }
 

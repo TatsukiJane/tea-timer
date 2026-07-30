@@ -31,6 +31,7 @@ export function StepListProgress({
               type="button"
               onClick={() => onSelect(index)}
               aria-current={isCurrent ? 'step' : undefined}
+              data-done={isDone ? 'true' : 'false'}
               className={cn(
                 'flex min-h-11 w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors',
                 isCurrent
@@ -49,7 +50,15 @@ export function StepListProgress({
                       : 'bg-secondary text-secondary-foreground',
                 )}
               >
-                {isDone ? <CheckIcon className="size-3.5" /> : step.rinse ? '~' : number}
+                {isDone ? (
+                  // The badge carries the only "done" wording on the row, so it
+                  // needs a name of its own — the number it replaces had one.
+                  <CheckIcon className="size-3.5" role="img" aria-label={t('brew.stepDone')} />
+                ) : step.rinse ? (
+                  '~'
+                ) : (
+                  number
+                )}
               </span>
 
               <span className="flex-1 truncate text-sm">

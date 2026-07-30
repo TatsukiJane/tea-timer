@@ -120,6 +120,18 @@ try {
       return osc
     }
   })
+  // Vibration is a no-op in headless Chromium, but the *pattern* is the thing worth
+  // checking: it has to be one buzz per pip, of the pip's own length.
+  await context.addInitScript(() => {
+    window.__vibrations = []
+    const proto = window.Navigator?.prototype
+    if (!proto || typeof proto.vibrate !== 'function') return
+    const original = proto.vibrate
+    proto.vibrate = function patched(pattern) {
+      window.__vibrations.push(pattern)
+      return original.call(this, pattern)
+    }
+  })
 
   const page = await context.newPage()
 
@@ -221,6 +233,33 @@ try {
     true,
   )
 
+  // Two oscillators start at the same instant per pip: the fundamental and the
+  // octave that makes it carry. One voice per instant would mean a bare sine again.
+  const voicesPerPip = await page.evaluate(() => {
+    const perInstant = new Map()
+    for (const at of window.__oscStarts) perInstant.set(at, (perInstant.get(at) ?? 0) + 1)
+    return [...perInstant.values()]
+  })
+  check(
+    'every pip is a fundamental plus its octave',
+    voicesPerPip.length > 0 && voicesPerPip.every((n) => n === 2),
+    true,
+  )
+
+  check(
+    'the vibration is one buzz per pip, of the pip length',
+    JSON.stringify(await page.evaluate(() => window.__vibrations.at(-1))),
+    JSON.stringify([130, 90, 130, 90, 130]),
+  )
+
+  console.log('· the window title blinks while the window is not in front')
+  const restingTitle = await page.title()
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hasFocus', { value: () => false, configurable: true })
+  })
+  await sleep(1300)
+  check('the title carries the alarm when the window is behind', (await page.title()).includes('⏰'), true)
+
   await page.getByTestId('silence-alarm').click()
   check('the silence button disappears once pressed', await page.getByTestId('silence-alarm').count(), 0)
   const afterSilence = await page.evaluate(() => window.__oscStarts.length)
@@ -230,12 +269,33 @@ try {
     await page.evaluate(() => window.__oscStarts.length),
     afterSilence,
   )
+  check('silencing gives the title back', await page.title(), restingTitle)
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hasFocus', { value: () => true, configurable: true })
+  })
 
   console.log('· advancing must not auto-start the next step')
   await page.getByTestId('next-step').click()
   check('numbering starts after the rinse', await page.getByTestId('step-title').innerText(), 'Пролив 1')
   await page.waitForSelector('[data-testid=start-step]', { timeout: 5000 })
   check('next step is idle, waiting for a manual start', true, true)
+
+  console.log('\n· "Далее" marks the pour behind you, "Назад" un-marks it')
+  const stepRows = page.locator('[data-testid=step-list] > li > button')
+  check('the rinse that ran out is marked done', await stepRows.nth(0).getAttribute('data-done'), 'true')
+  await page.getByTestId('skip-next').click()
+  check(
+    'skipping forward marks the pour you left, without waiting for its timer',
+    await stepRows.nth(1).getAttribute('data-done'),
+    'true',
+  )
+  await page.getByRole('button', { name: 'Назад' }).click()
+  check(
+    'going back un-marks the pour you returned to',
+    await stepRows.nth(1).getAttribute('data-done'),
+    'false',
+  )
+  check('and leaves you on it', await page.getByTestId('step-title').innerText(), 'Пролив 1')
 
   console.log('\n· state stays correct when the tab is hidden past a deadline')
   await page.getByTestId('start-step').click()
@@ -286,6 +346,19 @@ try {
   // Both writes are async against IndexedDB; navigating before they land would
   // leave sync looking unconfigured.
   await page.waitForSelector('text=Настройки сохранены', { timeout: 10_000 })
+
+  console.log('· the signal volume is remembered')
+  await page.getByTestId('volume-low').click()
+  // The write goes to IndexedDB; reloading before it lands would prove nothing.
+  await page.waitForTimeout(500)
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await page.waitForSelector('[data-testid=volume-low]')
+  check(
+    'the chosen volume survives a reload',
+    await page.getByTestId('volume-low').getAttribute('data-state'),
+    'on',
+  )
+
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
   await page.getByTestId('new-mode').click()
   await page.getByTestId('mode-title').fill('Оффлайн чай')
@@ -300,6 +373,25 @@ try {
     true,
   )
   await context.setOffline(false)
+
+  console.log('\n· duplicate opens an unsaved copy')
+  await page.getByRole('button', { name: 'Действия' }).first().click()
+  await page.getByRole('menuitem', { name: 'Дублировать' }).click()
+  await page.waitForSelector('[data-testid=mode-title]')
+  check(
+    'the copy is named after the original',
+    (await page.getByTestId('mode-title').inputValue()).endsWith('(копия)'),
+    true,
+  )
+  check('the copy carries the pours over', (await page.getByTestId('step-seconds').count()) > 0, true)
+  await page.getByRole('link', { name: 'Назад' }).click()
+  await page.waitForSelector('[data-testid=mode-list]')
+  await page.waitForTimeout(400)
+  check(
+    'backing out of a duplicate writes nothing',
+    await page.locator('[data-testid=mode-list] > li').count(),
+    2,
+  )
 
   console.log('\n· delete with confirmation')
   await page.getByRole('button', { name: 'Действия' }).first().click()

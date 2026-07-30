@@ -84,17 +84,25 @@ export function BrewPage() {
     setRinging(false)
   }, [])
 
-  const handleDone = useCallback(() => {
-    const prefs = prefsRef.current
-    startAlarm(prefs)
-    // Nothing to switch off if both signals are disabled in settings.
-    if (prefs.sound || prefs.vibration) setRinging(true)
+  /**
+   * `completed` is sparse — jumping around the list leaves holes — so every read
+   * goes through `=== true`.
+   */
+  const markCompleted = useCallback((index: number, done: boolean) => {
     setCompleted((current) => {
       const next = [...current]
-      next[stepIndexRef.current] = true
+      next[index] = done
       return next
     })
   }, [])
+
+  const handleDone = useCallback(() => {
+    const prefs = prefsRef.current
+    startAlarm(prefs, t('attention.flash'))
+    // Nothing to switch off if every signal is disabled in settings.
+    if (prefs.sound || prefs.vibration || prefs.attention) setRinging(true)
+    markCompleted(stepIndexRef.current, true)
+  }, [markCompleted])
 
   // Leaving the screen must never leave a beeping page behind.
   useEffect(() => stopAlarm, [])
@@ -220,10 +228,29 @@ export function BrewPage() {
     timer.start()
   }
 
+  /**
+   * Plain navigation: tapping a row in the list is "let me look at this one", not
+   * a claim about what has been poured, so it leaves the marks alone. The two
+   * buttons below are the ones that mean something.
+   */
   const goToStep = (index: number) => {
     if (index < 0 || index >= steps.length) return
     silence()
     setStepIndex(index)
+  }
+
+  /** Moving on means the pour you are leaving is behind you, timer or no timer. */
+  const handleNext = () => {
+    if (stepIndex >= steps.length - 1) return
+    markCompleted(stepIndex, true)
+    goToStep(stepIndex + 1)
+  }
+
+  /** Going back means you are pouring that one again, so its mark comes off. */
+  const handlePrev = () => {
+    if (stepIndex <= 0) return
+    markCompleted(stepIndex - 1, false)
+    goToStep(stepIndex - 1)
   }
 
   if (loading) {
@@ -304,9 +331,12 @@ export function BrewPage() {
           onReset={() => {
             silence()
             timer.reset()
+            // Same reading as "Назад": the countdown is back at the top, so the
+            // pour is ahead of you again, not behind.
+            markCompleted(stepIndex, false)
           }}
-          onPrev={() => goToStep(stepIndex - 1)}
-          onNext={() => goToStep(stepIndex + 1)}
+          onPrev={handlePrev}
+          onNext={handleNext}
           onSilence={silence}
         />
 
