@@ -14,6 +14,16 @@
       "rules": {
         "react/only-export-components": "off"
       }
+    },
+    {
+      // The icon set. Every export is a component, but each one is built by a
+      // factory and the rule cannot see through it. Moving the factory to its own
+      // file to satisfy it would put the lucide→Phosphor mapping somewhere other
+      // than the comment that explains it.
+      "files": ["src/lib/icons.tsx"],
+      "rules": {
+        "react/only-export-components": "off"
+      }
     }
   ]
 }

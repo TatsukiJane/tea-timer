@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { ImageIcon, XIcon } from 'lucide-react'
+import { ImageIcon, XIcon } from '@/lib/icons'
 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'

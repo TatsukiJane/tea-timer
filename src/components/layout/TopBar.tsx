@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { ChevronLeftIcon } from 'lucide-react'
+import { ChevronLeftIcon } from '@/lib/icons'
 import { Link } from 'react-router'
 
 import { Button } from '@/components/ui/button'

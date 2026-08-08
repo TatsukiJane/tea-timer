@@ -1,4 +1,4 @@
-import { CheckIcon } from 'lucide-react'
+import { CheckIcon } from '@/lib/icons'
 
 import { t } from '@/i18n'
 import { mmss } from '@/lib/format'

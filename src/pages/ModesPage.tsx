@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PlusIcon, SettingsIcon } from 'lucide-react'
+import { PlusIcon, SettingsIcon } from '@/lib/icons'
 import { Link } from 'react-router'
 import { toast } from 'sonner'
 

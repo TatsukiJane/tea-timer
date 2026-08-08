@@ -1,4 +1,4 @@
-import { InfoIcon } from 'lucide-react'
+import { InfoIcon } from '@/lib/icons'
 
 import { t } from '@/i18n'
 

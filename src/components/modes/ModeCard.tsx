@@ -1,4 +1,4 @@
-import { CopyIcon, LeafIcon, MoreVerticalIcon, PencilIcon, PlayIcon, Trash2Icon } from 'lucide-react'
+import { CopyIcon, LeafIcon, MoreVerticalIcon, PencilIcon, PlayIcon, TrashIcon } from '@/lib/icons'
 import { Link } from 'react-router'
 
 import { Badge } from '@/components/ui/badge'
@@ -90,7 +90,7 @@ export function ModeCard({ mode, onDelete }: ModeCardProps) {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem variant="destructive" onSelect={() => onDelete(mode)}>
-              <Trash2Icon />
+              <TrashIcon />
               {t('common.delete')}
             </DropdownMenuItem>
           </DropdownMenuContent>

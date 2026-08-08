@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BellRingIcon, CheckCircle2Icon, XCircleIcon } from 'lucide-react'
+import { BellRingIcon, CheckCircleIcon, XCircleIcon } from '@/lib/icons'
 import { toast } from 'sonner'
 
 import { TopBar } from '@/components/layout/TopBar'
@@ -279,7 +279,7 @@ export function SettingsPage() {
             >
               {check.lines.map((line) => (
                 <p key={line} className="flex items-start gap-2">
-                  <CheckCircle2Icon className="mt-0.5 size-3.5 shrink-0 text-success" aria-hidden />
+                  <CheckCircleIcon className="mt-0.5 size-3.5 shrink-0 text-success" aria-hidden />
                   {line}
                 </p>
               ))}

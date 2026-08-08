@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { Loader2Icon, RefreshCwIcon } from 'lucide-react'
+import { SpinnerIcon, SyncIcon } from '@/lib/icons'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -17,7 +17,7 @@ export function SyncButton() {
     return (
       <Button asChild variant="ghost" size="icon-lg" aria-label={t('sync.notConfigured')} title={t('sync.notConfigured')}>
         <Link to="/settings">
-          <RefreshCwIcon className="size-5 text-muted-foreground" />
+          <SyncIcon className="size-5 text-muted-foreground" />
         </Link>
       </Button>
     )
@@ -46,9 +46,9 @@ export function SyncButton() {
       className="relative"
     >
       {running ? (
-        <Loader2Icon className="size-5 animate-spin" />
+        <SpinnerIcon className="size-5 animate-spin" />
       ) : (
-        <RefreshCwIcon className="size-5" />
+        <SyncIcon className="size-5" />
       )}
       {pending > 0 && !running && (
         <span

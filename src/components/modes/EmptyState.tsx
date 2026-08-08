@@ -1,4 +1,4 @@
-import { LeafIcon, PlusIcon } from 'lucide-react'
+import { LeafIcon, PlusIcon } from '@/lib/icons'
 import { Link } from 'react-router'
 
 import { Button } from '@/components/ui/button'

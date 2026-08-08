@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CopyIcon, Trash2Icon } from 'lucide-react'
+import { CopyIcon, TrashIcon } from '@/lib/icons'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -110,7 +110,7 @@ export function PresetEditor({
           title={canRemove ? t('editor.preset.remove') : t('editor.preset.removeLast')}
           onClick={onRemove}
         >
-          <Trash2Icon className={canRemove ? 'text-destructive' : undefined} />
+          <TrashIcon className={canRemove ? 'text-destructive' : undefined} />
         </Button>
       </div>
 

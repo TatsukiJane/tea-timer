@@ -1,4 +1,4 @@
-import { ChevronDownIcon, ChevronUpIcon, Trash2Icon } from 'lucide-react'
+import { ChevronDownIcon, ChevronUpIcon, TrashIcon } from '@/lib/icons'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -102,7 +102,7 @@ export function StepRow({
           aria-label={t('editor.step.remove')}
           onClick={onRemove}
         >
-          <Trash2Icon className="text-destructive" />
+          <TrashIcon className="text-destructive" />
         </Button>
       </div>
 

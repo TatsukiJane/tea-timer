@@ -1,4 +1,4 @@
-import { PlusIcon } from 'lucide-react'
+import { PlusIcon } from '@/lib/icons'
 
 import { Button } from '@/components/ui/button'
 import { t } from '@/i18n'

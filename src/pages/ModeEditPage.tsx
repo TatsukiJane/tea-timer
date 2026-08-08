@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { PlusIcon, SaveIcon } from 'lucide-react'
+import { PlusIcon, SaveIcon } from '@/lib/icons'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 

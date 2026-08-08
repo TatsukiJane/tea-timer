@@ -4,8 +4,8 @@ import {
   ChevronRightIcon,
   PauseIcon,
   PlayIcon,
-  RotateCcwIcon,
-} from 'lucide-react'
+  ResetIcon,
+} from '@/lib/icons'
 
 import { Button } from '@/components/ui/button'
 import { t } from '@/i18n'
@@ -111,7 +111,7 @@ export function TimerControls({
           {t('brew.prev')}
         </Button>
         <Button variant="outline" size="lg" className="h-11 flex-1" onClick={onReset}>
-          <RotateCcwIcon />
+          <ResetIcon />
           {t('brew.reset')}
         </Button>
         <Button

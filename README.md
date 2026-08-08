@@ -85,8 +85,8 @@ presets:
 
 ## Стек
 
-React 19 · Vite 8 · Tailwind v4 · shadcn/ui · IndexedDB (`idb`) · `vite-plugin-pwa`
-· GitHub REST Contents API · GitHub Pages. Без бэкенда.
+React 19 · Vite 8 · Tailwind v4 · shadcn/ui · Phosphor Icons · IndexedDB (`idb`)
+· `vite-plugin-pwa` · GitHub REST Contents API · GitHub Pages. Без бэкенда.
 
 ## Документация
 

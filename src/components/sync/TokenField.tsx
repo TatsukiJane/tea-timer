@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CheckIcon, EyeIcon, EyeOffIcon, ShieldAlertIcon, XIcon } from 'lucide-react'
+import { CheckIcon, EyeIcon, EyeOffIcon, ShieldAlertIcon, XIcon } from '@/lib/icons'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
