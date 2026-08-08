@@ -221,6 +221,40 @@ export function infusionCount(steps: readonly BrewStep[]): number {
   return steps.reduce((n, s) => (s.rinse ? n : n + 1), 0)
 }
 
+/**
+ * Where a run begins, and where "next" / "previous" lead.
+ *
+ * The timer runs infusions only. A rinse is poured off to the side and thrown
+ * away, so counting it down is a step you have to click past every single brew;
+ * it stays in the list purely as a reminder that it comes first. These three are
+ * the only things allowed to decide which step is current.
+ */
+
+/**
+ * Falls back to index 0 when a preset holds nothing but rinses: a screen with no
+ * step at all would be worse than timing the one step that exists.
+ */
+export function firstInfusionIndex(steps: readonly BrewStep[]): number {
+  const index = steps.findIndex((step) => step.rinse !== true)
+  return index === -1 ? 0 : index
+}
+
+/** Next infusion after `from`, or null when that was the last one. */
+export function nextInfusionIndex(steps: readonly BrewStep[], from: number): number | null {
+  for (let i = from + 1; i < steps.length; i++) {
+    if (steps[i].rinse !== true) return i
+  }
+  return null
+}
+
+/** Previous infusion before `from`, or null when that was the first one. */
+export function prevInfusionIndex(steps: readonly BrewStep[], from: number): number | null {
+  for (let i = Math.min(from, steps.length) - 1; i >= 0; i--) {
+    if (steps[i].rinse !== true) return i
+  }
+  return null
+}
+
 export function findPreset(mode: BrewMode, presetId: string | null): VolumePreset | undefined {
   if (presetId === null) return mode.presets[0]
   return mode.presets.find((p) => p.id === presetId) ?? mode.presets[0]

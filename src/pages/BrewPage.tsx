@@ -31,7 +31,15 @@ import {
   stopAlarm,
 } from '@/timer/alarm'
 import { useStepTimer } from '@/timer/useStepTimer'
-import { infusionCount, infusionNumber, type BrewStep, type VolumePreset } from '@/types/brew'
+import {
+  firstInfusionIndex,
+  infusionCount,
+  infusionNumber,
+  nextInfusionIndex,
+  prevInfusionIndex,
+  type BrewStep,
+  type VolumePreset,
+} from '@/types/brew'
 
 export function BrewPage() {
   const { id } = useParams<{ id: string }>()
@@ -48,7 +56,11 @@ export function BrewPage() {
         : undefined
       : mode?.presets.find((p) => p.id === presetId)
 
-  const [stepIndex, setStepIndex] = useState(0)
+  /**
+   * The step the user last moved to. Nothing reads this directly — everything goes
+   * through `stepIndex` below, which steps over rinses.
+   */
+  const [selectedIndex, setSelectedIndex] = useState(0)
   const [completed, setCompleted] = useState<boolean[]>([])
   const [restorable, setRestorable] = useState<
     { presetId: string; stepIndex: number; completed: boolean[]; endAt?: number } | null
@@ -63,6 +75,22 @@ export function BrewPage() {
   const [restoreResolved, setRestoreResolved] = useState(false)
 
   const steps: readonly BrewStep[] = preset?.steps ?? []
+  /**
+   * A rinse is never the current step: it is shown for reference, not run. An index
+   * past the end is corrected too — the route keeps this component mounted when you
+   * open a different tea, so a longer preset leaves an index behind that the shorter
+   * one has no step for, and an uncorrected one reads as "all done" on a brew that
+   * has not started.
+   *
+   * Derived during render rather than pushed back into state by an effect, so a
+   * rinse is never on screen for a frame — and a session written by an older build,
+   * which could point straight at one, is repaired for free.
+   */
+  const selectedStep = steps[selectedIndex]
+  const stepIndex =
+    selectedStep === undefined || selectedStep.rinse === true
+      ? firstInfusionIndex(steps)
+      : selectedIndex
   const currentStep = steps[stepIndex]
 
   const prefsRef = useRef(prefs)
@@ -161,7 +189,7 @@ export function BrewPage() {
     if (restorable === null) return
     silence()
     setSearchParams({ preset: restorable.presetId }, { replace: true })
-    setStepIndex(restorable.stepIndex)
+    setSelectedIndex(restorable.stepIndex)
     setCompleted(restorable.completed)
     loadedKeyRef.current = `${restorable.presetId}:${restorable.stepIndex}`
     const seconds =
@@ -232,25 +260,30 @@ export function BrewPage() {
    * Plain navigation: tapping a row in the list is "let me look at this one", not
    * a claim about what has been poured, so it leaves the marks alone. The two
    * buttons below are the ones that mean something.
+   *
+   * Rinses are refused here too, not only hidden from the list: this is the single
+   * funnel every move goes through, so the invariant is cheapest to hold here.
    */
   const goToStep = (index: number) => {
-    if (index < 0 || index >= steps.length) return
+    if (index < 0 || index >= steps.length || steps[index].rinse === true) return
     silence()
-    setStepIndex(index)
+    setSelectedIndex(index)
   }
 
   /** Moving on means the pour you are leaving is behind you, timer or no timer. */
   const handleNext = () => {
-    if (stepIndex >= steps.length - 1) return
+    const next = nextInfusionIndex(steps, stepIndex)
+    if (next === null) return
     markCompleted(stepIndex, true)
-    goToStep(stepIndex + 1)
+    goToStep(next)
   }
 
   /** Going back means you are pouring that one again, so its mark comes off. */
   const handlePrev = () => {
-    if (stepIndex <= 0) return
-    markCompleted(stepIndex - 1, false)
-    goToStep(stepIndex - 1)
+    const prev = prevInfusionIndex(steps, stepIndex)
+    if (prev === null) return
+    markCompleted(prev, false)
+    goToStep(prev)
   }
 
   if (loading) {
@@ -323,8 +356,8 @@ export function BrewPage() {
 
         <TimerControls
           timer={timer.timer}
-          hasPrev={stepIndex > 0}
-          hasNext={stepIndex < steps.length - 1}
+          hasPrev={prevInfusionIndex(steps, stepIndex) !== null}
+          hasNext={nextInfusionIndex(steps, stepIndex) !== null}
           ringing={ringing}
           onStart={() => void handleStart()}
           onPause={timer.pause}
@@ -355,7 +388,7 @@ export function BrewPage() {
             onPick={(picked) => {
               silence()
               setSearchParams({ preset: picked.id }, { replace: true })
-              setStepIndex(0)
+              setSelectedIndex(0)
               setCompleted([])
             }}
           />

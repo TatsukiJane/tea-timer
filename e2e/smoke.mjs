@@ -86,9 +86,12 @@ async function waitForServer(url, timeoutMs = 30_000) {
   throw new Error(`preview server did not start at ${url}`)
 }
 
+// Vite's own entry is run with this Node rather than through `npx`: current Node
+// refuses to spawn `npx.cmd` on Windows without a shell, and a shell in between
+// would swallow `preview.kill()` and leave the server holding the port.
 const preview = spawn(
-  process.platform === 'win32' ? 'npx.cmd' : 'npx',
-  ['vite', 'preview', '--port', String(PORT), '--strictPort'],
+  process.execPath,
+  [require.resolve('vite/bin/vite.js'), 'preview', '--port', String(PORT), '--strictPort'],
   { stdio: 'ignore' },
 )
 
@@ -210,7 +213,21 @@ try {
     await page.getByTestId('brew-context').innerText(),
     '150 мл · 8 г · 95°',
   )
-  check('first step is the rinse', await page.getByTestId('step-title').innerText(), 'Промывка')
+  // The rinse is a note, not a step: brewing opens on the first real pour, and the
+  // rinse row has no button, so there is nothing to step onto.
+  check(
+    'brewing opens on the first pour, stepping over the rinse',
+    await page.getByTestId('step-title').innerText(),
+    'Пролив 1',
+  )
+  const listRows = page.locator('[data-testid=step-list] > li')
+  check('the rinse keeps its place in the list', (await listRows.count()) === 3, true)
+  check('and still reads as the rinse', (await listRows.nth(0).innerText()).includes('Промывка'), true)
+  check(
+    'but it is not selectable',
+    await page.locator('[data-testid=step-list] > li > button').count(),
+    2,
+  )
 
   console.log('\n· run a step to completion')
   await page.getByTestId('start-step').click()
@@ -276,26 +293,29 @@ try {
 
   console.log('· advancing must not auto-start the next step')
   await page.getByTestId('next-step').click()
-  check('numbering starts after the rinse', await page.getByTestId('step-title').innerText(), 'Пролив 1')
+  check('advancing moves on by one pour', await page.getByTestId('step-title').innerText(), 'Пролив 2')
   await page.waitForSelector('[data-testid=start-step]', { timeout: 5000 })
   check('next step is idle, waiting for a manual start', true, true)
 
   console.log('\n· "Далее" marks the pour behind you, "Назад" un-marks it')
+  // The rinse has no button of its own, so these rows are the pours.
   const stepRows = page.locator('[data-testid=step-list] > li > button')
-  check('the rinse that ran out is marked done', await stepRows.nth(0).getAttribute('data-done'), 'true')
-  await page.getByTestId('skip-next').click()
-  check(
-    'skipping forward marks the pour you left, without waiting for its timer',
-    await stepRows.nth(1).getAttribute('data-done'),
-    'true',
-  )
+  check('the pour that ran out is marked done', await stepRows.nth(0).getAttribute('data-done'), 'true')
   await page.getByRole('button', { name: 'Назад' }).click()
   check(
     'going back un-marks the pour you returned to',
-    await stepRows.nth(1).getAttribute('data-done'),
+    await stepRows.nth(0).getAttribute('data-done'),
     'false',
   )
   check('and leaves you on it', await page.getByTestId('step-title').innerText(), 'Пролив 1')
+  await page.getByTestId('skip-next').click()
+  check(
+    'skipping forward marks the pour you left, without waiting for its timer',
+    await stepRows.nth(0).getAttribute('data-done'),
+    'true',
+  )
+  await page.getByRole('button', { name: 'Назад' }).click()
+  check('back on the pour to run next', await page.getByTestId('step-title').innerText(), 'Пролив 1')
 
   console.log('\n· state stays correct when the tab is hidden past a deadline')
   await page.getByTestId('start-step').click()
